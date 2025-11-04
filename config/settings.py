@@ -24,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-y9kiba)9@lf%67of*cvx)v_d3c7%5w8f(9b1)s3mgi@v3pi$^&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = False
+# LEMBRAR DE MUDAR PRA FALSE QUANDO FOR SUBIR PRA HOSPEDAGEM
+ALLOWED_HOSTS = ['sistema-qualidade.onrender.com', 'localhost', '127.0.0.1']
 
 
 # Application definition
@@ -129,4 +129,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configurações CSRF
 CSRF_COOKIE_HTTPONLY = False  # Permite JavaScript acessar o cookie CSRF
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000', 'https://sistema-qualidade.onrender.com']
