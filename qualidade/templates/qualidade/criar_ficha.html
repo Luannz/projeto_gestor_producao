@@ -1,0 +1,111 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Nova Ficha{% endblock %}
+
+{% block content %}
+<style>
+    .form-card {
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .form-header h2 {
+        font-size: 28px;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 16px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+    }
+    
+    .form-actions .btn {
+        flex: 1;
+    }
+    
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 25px;
+        }
+    }
+</style>
+
+<div class="form-card">
+    <div class="form-header">
+        <h2>📝 Criar Nova Ficha</h2>
+        <p style="color: #6b7280;">Preencha as informações básicas</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="data">Data *</label>
+            <input type="date" 
+                   id="data" 
+                   name="data" 
+                   class="form-control" 
+                   value="{{ data_hoje|date:'Y-m-d' }}"
+                   max="{{ data_hoje|date:'Y-m-d' }}"
+                   required>
+        </div>
+        
+        <div class="form-group">
+            <label for="nome_ficha">Nome do Operador *</label>
+            <input type="text" 
+                   id="nome_ficha" 
+                   name="nome_ficha" 
+                   class="form-control"
+                   required
+                   autofocus>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'home' %}" class="btn btn-secondary">
+                ← Voltar
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Criar e Adicionar Partes →
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

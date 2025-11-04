@@ -1,0 +1,21 @@
+# Ambiente virtual
+venv/
+.venv/
+
+# Arquivos e pastas do PyCharm
+.idea/
+
+# Compilações e cache
+__pycache__/
+*.pyc
+
+# Banco local
+db.sqlite3
+
+# Configurações locais
+*.env
+.env
+
+# Arquivos estáticos gerados
+/staticfiles/
+/media/
