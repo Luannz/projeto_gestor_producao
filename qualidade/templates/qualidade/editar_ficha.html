@@ -662,7 +662,6 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();  // ← Impede comportamento padrão
-                e.stopPropagation();  // ← Para a propagação do evento
                 const parteId = this.id.replace('input-', '');
                 adicionarQuantidade(parteId);
             }
