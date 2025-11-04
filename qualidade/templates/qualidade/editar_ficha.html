@@ -659,7 +659,7 @@ function atualizarLista(parteId, quantidades, total) {
 document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('.quantidade-input');
     inputs.forEach(input => {
-        input.addEventListener('keypress', function(e) {
+        input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();  // ← Impede comportamento padrão
                 const parteId = this.id.replace('input-', '');
