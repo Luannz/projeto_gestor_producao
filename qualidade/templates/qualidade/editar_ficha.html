@@ -655,23 +655,16 @@ function atualizarLista(parteId, quantidades, total) {
     }
 }
 
-// Permitir adicionar com Enter
+// Permitir adicionar com Enter ou "Ir" no celular
 document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('.quantidade-input');
+    
     inputs.forEach(input => {
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                e.preventDefault();  // ← Impede comportamento padrão
+                e.preventDefault(); // Impede o envio do formulário
                 const parteId = this.id.replace('input-', '');
                 adicionarQuantidade(parteId);
-            }
-        });
-        
-        // Impedir submit do form ao pressionar Enter
-        input.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                return false;
             }
         });
     });
