@@ -27,3 +27,12 @@ def sum_values(value):
         return sum(value)
     return 0
 
+@register.filter
+def map_attr(value, attr):
+    """Retorna lista com o valor de um atributo ou chave em cada item"""
+    try:
+        return [v.get(attr) if isinstance(v, dict) else getattr(v, attr, None) for v in value]
+    except Exception:
+        return []
+
+

@@ -12,10 +12,12 @@ from .models import Ficha, ParteCalcado, RegistroParte, PerfilUsuario
 from django.db import models
 import json
 import hashlib
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from io import BytesIO
 from django.contrib.auth.models import User
+from datetime import datetime
+
 
 
 
@@ -482,7 +484,8 @@ def relatorios(request):
     
     # Inicializar dados
     dados_relatorio = None
-    
+    total_geral = 0  # ✅ adicionamos aqui para somar tudo
+
     # Se houver filtros aplicados, processar
     if data_inicio and data_fim:
         # Converter strings para datas
@@ -525,14 +528,19 @@ def relatorios(request):
                 if parte_nome not in dados_por_operador[operador_nome]['partes']:
                     dados_por_operador[operador_nome]['partes'][parte_nome] = 0
                 
-                dados_por_operador[operador_nome]['partes'][parte_nome] += registro.total()
+                # Soma por parte e soma geral
+                valor = registro.total()
+                dados_por_operador[operador_nome]['partes'][parte_nome] += valor
+                total_geral += valor  # ✅ acumulando total geral aqui
         
         dados_relatorio = dados_por_operador
     
+    # Monta o contexto completo
     context = {
         'partes': partes,
         'operadores': operadores,
         'dados_relatorio': dados_relatorio,
+        'total_geral': total_geral,  # ✅ agora o template só exibe
         'data_inicio': data_inicio,
         'data_fim': data_fim,
         'parte_id': parte_id,

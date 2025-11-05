@@ -3,7 +3,7 @@
 {% block header_title %}Relatórios{% endblock %}
 
 {% block content %}
-{% load custom_filters %}
+{% load qualidade_filters %}
 
 <style>
     .page-header {
@@ -291,7 +291,7 @@
         <div style="font-size: 14px; opacity: 0.9;">TOTAL GERAL</div>
         <div style="font-size: 36px; font-weight: 700; margin: 10px 0;">
             {% widthratio dados_relatorio.values|length 1 1 as count %}
-            {{ dados_relatorio.values|map:'partes'|map:'values'|sum|default:0 }}
+            {{ total_geral}}
         </div>
         <div style="font-size: 14px; opacity: 0.9;">peças produzidas no período</div>
     </div>
