@@ -128,7 +128,7 @@
         <div class="form-group-filtro">
             <label for="nome_operador">Nome do Operador</label>
             <select id="nome_operador" name="nome_ficha" class="form-control-filtro">
-                <option value=""></option>
+                <option value="">Selecionar nome...</option>
                 {% for nome in nomes_operador %}
                     <option value="{{ nome.nome }}" {% if nome_operador == nome.nome %}selected{% endif %}>
                         {{ nome.nome }}
