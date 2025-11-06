@@ -182,7 +182,7 @@
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">🔧 Gerenciamento de Operadores</h2>
+        <h2 class="page-title">🔧 Gerenciamento de nomes dos Operadores</h2>
         <p style="color: #6b7280; margin-top: 5px;">Crie e gerencie nomes de operadores</p>
     </div>
     <div style="display: flex; gap: 10px;">
@@ -239,7 +239,7 @@
                 <form method="post" style="display:inline;" onsubmit="return confirm('Deseja mover este operador para a lixeira?');">
                     {% csrf_token %}
                     <input type="hidden" name="acao" value="mover_lixeira">
-                    <input type="hidden" name="nome_operador_id" value="{{ nome_operador.id }}">
+                    <input type="hidden" name="operador_id" value="{{ operador.id }}">
                     <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
                 </form>
             </div>

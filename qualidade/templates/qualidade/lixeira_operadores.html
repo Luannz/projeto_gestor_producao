@@ -1,0 +1,180 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Lixeira de Nomes{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #111827;
+    }
+    
+    .operadores-list {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .operadores-list-header {
+        background: #ef4444;
+        color: white;
+        padding: 20px 25px;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .operador-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e5e7eb;
+        transition: all 0.2s;
+        background: #fef2f2;
+    }
+    
+    .operador-item:hover {
+        background: #fee2e2;
+    }
+    
+    .operador-item:last-child {
+        border-bottom: none;
+    }
+    
+    .operador-info {
+        flex: 1;
+    }
+    
+    .operador-nome {
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 5px;
+    }
+    
+    .operador-status {
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    .operador-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-icon {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-restore {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-restore:hover {
+        background: #059669;
+    }
+    
+    .btn-delete-permanent {
+        background: #991b1b;
+        color: white;
+    }
+    
+    .btn-delete-permanent:hover {
+        background: #7f1d1d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .operador-item {
+            flex-direction: column;
+            gap: 15px;
+            align-items: start;
+        }
+        
+        .operador-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🗑️ Lixeira de registros de operadores</h2>
+        <p style="color: #6b7280; margin-top: 5px;">Restaure ou exclua permanentemente um registro</p>
+    </div>
+    <a href="{% url 'gerenciar_operadores' %}" class="btn btn-secondary">← Voltar</a>
+</div>
+
+<div class="operadores-list">
+    <div class="operadores-list-header">
+        🗑️ Registros na Lixeira ({{ operadores.count }})
+    </div>
+    
+    {% if operadores %}
+        {% for operador in operadores %}
+        <div class="operador-item">
+            <div class="operador-info">
+                <div class="operador-nome">{{ operador.nome }}</div>
+                <div class="operador-status">
+                    Excluída em: {{ operador.excluido_em|date:"d/m/Y H:i" }}
+                </div>
+            </div>
+            
+            <div class="operador-actions">
+                <form method="post" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja RESTAURAR esse Registro?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="restaurar">
+                    <input type="hidden" name="operador_id" value="{{ operador.id }}">
+                    <button type="submit" class="btn-icon btn-restore">
+                        ↩️ Restaurar
+                    </button>
+                </form>
+                
+                <form method="post" style="display: inline;" onsubmit="return confirm('⚠️ ATENÇÃO! Esta ação é PERMANENTE e não pode ser desfeita. Deseja realmente EXCLUIR esse Registro?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="excluir_permanente">
+                    <input type="hidden" name="operador_id" value="{{ operador.id }}">
+                    <button type="submit" class="btn-icon btn-delete-permanent">
+                        ⚠️ Excluir Permanente
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div style="font-size: 64px; margin-bottom: 20px;">✨</div>
+        <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+            Lixeira Vazia
+        </h3>
+        <p style="font-size: 16px;">
+            Nenhum registro na lixeira
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

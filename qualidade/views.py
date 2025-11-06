@@ -205,20 +205,20 @@ def gerenciar_operadores(request):
                 messages.error(request, 'Digite o nome do operador')
         
         elif acao == 'mover_lixeira':
-            nome_operador_id = request.POST.get('nome_operador_id')
+            operador_id = request.POST.get('operador_id')
             try:
-                operador = NomeOperador.objects.get(id=nome_operador_id, excluido=False)
+                operador = NomeOperador.objects.get(id=operador_id, excluido=False)
                 operador.excluido = True
                 operador.excluido_em = timezone.now()
                 operador.save()
-                messages.success(request, f'Parte "{parte.nome}" movida para a lixeira!')
+                messages.success(request, f'Parte "{operador.nome}" movida para a lixeira!')
             except NomeOperador.DoesNotExist:
                 messages.error(request, 'Operador não encontrado')
         
         elif acao == 'ativar_desativar':
-            nome_operador_id = request.POST.get('nome_operador_id')
+            operador_id = request.POST.get('operador_id')
             try:
-                operador = NomeOperador.objects.get(id=nome_operador_id, excluido=False)
+                operador = NomeOperador.objects.get(id=operador_id, excluido=False)
                 operador.ativo = not operador.ativo
                 operador.save()
                 status = 'ativo' if operador.ativo else 'desativado'
@@ -239,8 +239,43 @@ def gerenciar_operadores(request):
 
 @login_required
 def lixeira_operadores(request):
-    ...
-
+    """Lixeira de nomes de operadores (apenas qualidade)"""
+    if request.user.perfil.tipo != 'qualidade':
+        messages.error(request, 'Apenas usuários da qualidade podem acessar a lixeira')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+        operador_id = request.POST.get('operador_id')
+        
+        if acao == 'restaurar':
+            try:
+                operador = NomeOperador.objects.get(id=operador_id, excluido=True)
+                operador.excluido = False
+                operador.excluido_em = None
+                operador.save()
+                messages.success(request, f'Registro do nome "{operador.nome}" restaurado com sucesso!')
+            except NomeOperador.DoesNotExist:
+                messages.error(request, 'Nome do operador não encontrada na lixeira')
+        
+        elif acao == 'excluir_permanente':
+            try:
+                operador = NomeOperador.objects.get(id=operador_id, excluido=True)
+                nome_operador = operador.nome
+                operador.delete()
+                messages.success(request, f'Registro do nome "{nome_operador}" excluído permanentemente!')
+            except NomeOperador.DoesNotExist:
+                messages.error(request, 'Nome do operador não encontrada na lixeira')
+        
+        return redirect('lixeira_operadores')
+    
+    # Listar apenas partes EXCLUÍDAS
+    operadores_excluidos = NomeOperador.objects.filter(excluido=True).order_by('-excluido_em')
+    
+    context = {
+        'operadores': operadores_excluidos,
+    }
+    return render(request, 'qualidade/lixeira_operadores.html', context)
 
 
 
