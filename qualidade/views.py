@@ -8,7 +8,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.utils import timezone
 from django.core.cache import cache
 from datetime import date
-from .models import Ficha, ParteCalcado, RegistroParte, PerfilUsuario
+from .models import Ficha, ParteCalcado, RegistroParte, PerfilUsuario, NomeOperador
 from django.db import models
 import json
 import hashlib
@@ -178,6 +178,70 @@ def excluir_ficha(request, ficha_id):
             messages.error(request, 'Ficha não encontrada')
     
     return redirect('home')
+
+@login_required
+def gerenciar_operadores(request):
+    """Gerenciar operadores (apenas qualidade)"""
+    # Verificar se é usuário da qualidade
+    if request.user.perfil.tipo != 'qualidade':
+        messages.error(request, 'Apenas usuários da qualidade podem gerenciar operadores')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+        
+        if acao == 'criar':
+            nome = request.POST.get('nome')
+            if nome:
+                # Verificar se já existe (incluindo excluídos)
+                if NomeOperador.objects.filter(nome__iexact=nome).exists():
+                    messages.error(request, f'O operador "{nome}" já existe')
+                else:
+                    # Pegar a maior ordem atual e adicionar 1
+                    max_ordem = NomeOperador.objects.all().aggregate(models.Max('ordem'))['ordem__max'] or 0
+                    NomeOperador.objects.create(nome=nome, ordem=max_ordem + 1)
+                    messages.success(request, f'Operador "{nome}" criado com sucesso!')
+            else:
+                messages.error(request, 'Digite o nome do operador')
+        
+        elif acao == 'mover_lixeira':
+            nome_operador_id = request.POST.get('nome_operador_id')
+            try:
+                operador = NomeOperador.objects.get(id=nome_operador_id, excluido=False)
+                operador.excluido = True
+                operador.excluido_em = timezone.now()
+                operador.save()
+                messages.success(request, f'Parte "{parte.nome}" movida para a lixeira!')
+            except NomeOperador.DoesNotExist:
+                messages.error(request, 'Operador não encontrado')
+        
+        elif acao == 'ativar_desativar':
+            nome_operador_id = request.POST.get('nome_operador_id')
+            try:
+                operador = NomeOperador.objects.get(id=nome_operador_id, excluido=False)
+                operador.ativo = not operador.ativo
+                operador.save()
+                status = 'ativo' if operador.ativo else 'desativado'
+                messages.success(request, f'Operador "{operador.nome}" {status}!')
+            except NomeOperador.DoesNotExist:
+                messages.error(request, 'Operador não encontrada')
+        
+        return redirect('gerenciar_operadores')
+    
+    # Listar apenas partes NÃO EXCLUÍDAS
+    operadores = NomeOperador.objects.filter(excluido=False).order_by('ordem', 'nome')
+    
+    context = {
+        'operadores': operadores,
+    }
+    return render(request, 'qualidade/gerenciar_operadores.html', context)
+
+
+@login_required
+def lixeira_operadores(request):
+    ...
+
+
 
 
 @login_required

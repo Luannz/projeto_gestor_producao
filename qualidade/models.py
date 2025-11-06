@@ -2,6 +2,24 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class NomeOperador(models.Model):
+    """Modelo para os nomes dos operadores"""
+    nome = models.CharField(max_length=100, unique=True)
+    ativo = models.BooleanField(default=True)
+    ordem = models.IntegerField(default=0)  # Para ordenar a exibição
+    excluido = models.BooleanField(default=False)
+    excluido_em = models.DateTimeField(null=True, blank=True)
+    excluido_por = models.ForeignKey('auth.User', null=True, blank=True, on_delete=models.SET_NULL, related_name='operadores_excluidos')
+
+    class Meta:
+        verbose_name = 'Nome do Operador'
+        verbose_name_plural = 'Nomes dos Operadores'
+        ordering = ['ordem', 'nome']
+
+    def __str__(self):
+        return self.nome
+
+
 class ParteCalcado(models.Model):
     """Modelo para as partes do calçado (Língua, Sola, Reforço, etc)"""
     nome = models.CharField(max_length=100, unique=True)
