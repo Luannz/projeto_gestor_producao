@@ -684,7 +684,11 @@ def gerar_relatorio_periodo(request):
         return redirect('relatorios')
     
     # Converter strings para datas (tratando dois formatos possíveis)
-    locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+    try:
+        locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
+    except locale.Error:
+        locale.setlocale(locale.LC_ALL, '')
+
     try:
         data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
     except ValueError:
