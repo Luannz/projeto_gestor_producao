@@ -1,0 +1,327 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Relatórios{% endblock %}
+
+{% block content %}
+{% load qualidade_filters %}
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #111827;
+    }
+    
+    .filtros-card {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .filtros-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-group-filtro {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group-filtro label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .form-control-filtro {
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 16px;
+        background: white;
+    }
+    
+    .form-control-filtro:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn-filtrar {
+        background: #667eea;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.3s;
+    }
+    
+    .btn-filtrar:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+    }
+    
+    .resultado-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    
+    .resultado-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .operador-section {
+        padding: 25px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .operador-section:last-child {
+        border-bottom: none;
+    }
+    
+    .operador-nome {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .partes-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .partes-tabela th {
+        background: #f3f4f6;
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .partes-tabela td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .partes-tabela tr:hover {
+        background: #f9fafb;
+    }
+    
+    .quantidade-valor {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 18px;
+    }
+    
+    .total-operador {
+        background: #e0e7ff;
+        font-weight: 700;
+        font-size: 16px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .filtros-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">📊 Relatórios de Produção</h2>
+        <p style="color: #6b7280; margin-top: 5px;">Visualize a produção por período, operador e parte</p>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-secondary">← Voltar</a>
+</div>
+
+<!-- Filtros -->
+<div class="filtros-card">
+    <h3 style="font-size: 20px; margin-bottom: 20px; color: #111827;">🔍 Filtros</h3>
+    
+    <form method="get" action="{% url 'relatorios' %}">
+        <div class="filtros-grid">
+            <div class="form-group-filtro">
+                <label for="data_inicio">Data Início *</label>
+                <input type="date" 
+                       id="data_inicio" 
+                       name="data_inicio" 
+                       class="form-control-filtro"
+                       value="{{ data_inicio }}"
+                       required>
+            </div>
+            
+            <div class="form-group-filtro">
+                <label for="data_fim">Data Fim *</label>
+                <input type="date" 
+                       id="data_fim" 
+                       name="data_fim" 
+                       class="form-control-filtro"
+                       value="{{ data_fim }}"
+                       required>
+            </div>
+            
+            <div class="form-group-filtro">
+                <label for="nome_ficha">Nome da Ficha</label>
+                <select id="nome_ficha" name="nome_ficha" class="form-control-filtro">
+                    <option value="">Todas as fichas</option>
+                    {% for nome in nomes_fichas %}
+                        <option value="{{ nome }}" {% if nome_ficha == nome %}selected{% endif %}>
+                            {{ nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            
+            <div class="form-group-filtro">
+                <label for="parte_id">Parte (Opcional)</label>
+                <select id="parte_id" name="parte_id" class="form-control-filtro">
+                    <option value="">Todas as partes</option>
+                    {% for parte in partes %}
+                    <option value="{{ parte.id }}" {% if parte_id == parte.id|stringformat:"s" %}selected{% endif %}>
+                        {{ parte.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="submit" class="btn-filtrar">
+                🔍 Buscar
+            </button>
+            
+            {% if dados_relatorio %}
+            <a href="{% url 'gerar_relatorio_periodo' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% if operador_id %}&operador_id={{ operador_id }}{% endif %}{% if parte_id %}&parte_id={{ parte_id }}{% endif %}" 
+               class="btn btn-success">
+                📄 Exportar PDF
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Resultados -->
+{% if dados_relatorio %}
+<div class="resultado-card">
+    <div class="resultado-header">
+        <div>
+            <h3 style="font-size: 20px; margin: 0;">Resultado da Consulta</h3>
+            <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
+                Período: {{ data_inicio|date:"d/m/Y" }} até {{ data_fim|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+            {{ dados_relatorio|length }} operador{{ dados_relatorio|length|pluralize:"es" }}
+        </div>
+    </div>
+    
+    {% for operador_nome, dados in dados_relatorio.items %}
+    <div class="operador-section">
+        <div class="operador-nome">
+            👤 {{ operador_nome }}
+        </div>
+        {% for nome_ficha in dados.fichas %}
+            <div class="nome-ficha">
+                📄 {{ nome_ficha }}
+            </div>
+        {% endfor %}
+        
+        {% if dados.partes %}
+        <table class="partes-tabela">
+            <thead>
+                <tr>
+                    <th>Parte</th>
+                    <th style="text-align: right; width: 150px;">Quantidade Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for parte_nome, total in dados.partes.items %}
+                <tr>
+                    <td>{{ parte_nome }}</td>
+                    <td style="text-align: right;" class="quantidade-valor">{{ total }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-operador">
+                    <td>TOTAL</td>
+                    <td style="text-align: right;" class="quantidade-valor">
+                        {{ dados.partes|sum_values }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #6b7280; font-style: italic;">Nenhuma produção no período</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+    
+    <!-- Total Geral -->
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 25px; text-align: center;">
+        <div style="font-size: 14px; opacity: 0.9;">TOTAL GERAL</div>
+        <div style="font-size: 36px; font-weight: 700; margin: 10px 0;">
+            {% widthratio dados_relatorio.values|length 1 1 as count %}
+            {{ total_geral}}
+        </div>
+        <div style="font-size: 14px; opacity: 0.9;">peças produzidas no período</div>
+    </div>
+</div>
+{% elif data_inicio and data_fim %}
+<div class="empty-state">
+    <div style="font-size: 64px; margin-bottom: 20px;">📊</div>
+    <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+        Nenhum resultado encontrado
+    </h3>
+    <p style="font-size: 16px;">
+        Não há dados para o período e filtros selecionados
+    </p>
+</div>
+{% else %}
+<div class="empty-state">
+    <div style="font-size: 64px; margin-bottom: 20px;">📅</div>
+    <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+        Selecione um período
+    </h3>
+    <p style="font-size: 16px;">
+        Preencha as datas de início e fim para visualizar o relatório
+    </p>
+</div>
+{% endif %}
+
+{% endblock %}

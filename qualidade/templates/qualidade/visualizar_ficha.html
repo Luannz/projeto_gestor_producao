@@ -1,0 +1,238 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Visualizar Ficha{% endblock %}
+
+{% block content %}
+<style>
+    .ficha-header-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .ficha-header-info h2 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    
+    .ficha-meta {
+        display: flex;
+        gap: 30px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+    }
+    
+    .tabela-wrapper {
+        overflow-x: auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .tabela-fichas {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .tabela-fichas thead {
+        background: #667eea;
+        color: white;
+    }
+    
+    .tabela-fichas th {
+        padding: 18px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 16px;
+        position: sticky;
+        top: 0;
+        background: #667eea;
+    }
+    
+    .tabela-fichas tbody tr {
+        transition: all 0.2s;
+    }
+    
+    .tabela-fichas tbody tr:hover {
+        background: #f3f4f6;
+    }
+    
+    .tabela-fichas tbody tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    
+    .tabela-fichas tbody tr:nth-child(even):hover {
+        background: #f3f4f6;
+    }
+    
+    .tabela-fichas td {
+        padding: 15px 18px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .coluna-parte {
+        font-weight: 700;
+        color: #111827;
+        font-size: 16px;
+    }
+    
+    .coluna-quantidades {
+        font-family: 'Courier New', monospace;
+        color: #4b5563;
+    }
+    
+    .quantidade-badge {
+        display: inline-block;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 4px 10px;
+        border-radius: 6px;
+        margin: 2px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .coluna-total {
+        font-weight: 700;
+        color: #059669;
+        font-size: 18px;
+        text-align: center;
+    }
+    
+    .total-geral {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .total-geral-valor {
+        font-size: 48px;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .ficha-meta {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .tabela-fichas {
+            font-size: 14px;
+        }
+        
+        .tabela-fichas th,
+        .tabela-fichas td {
+            padding: 12px 10px;
+        }
+        
+        .total-geral-valor {
+            font-size: 36px;
+        }
+    }
+</style>
+
+<div class="ficha-header-info">
+    <h2>{{ ficha.nome_ficha }}</h2>
+    <div class="ficha-meta">
+        <div class="meta-item">
+            <span>📅</span>
+            <span>{{ ficha.data|date:"d/m/Y" }}</span>
+        </div>
+        <div class="meta-item">
+            <span>👤</span>
+            <span>{{ ficha.operador.get_full_name|default:ficha.operador.username }}</span>
+        </div>
+        <div class="meta-item">
+            <span>🕐</span>
+            <span>Criada em {{ ficha.criada_em|date:"d/m/Y H:i" }}</span>
+        </div>
+    </div>
+</div>
+
+{% if registros %}
+<div class="tabela-wrapper">
+    <table class="tabela-fichas">
+        <thead>
+            <tr>
+                <th>Parte</th>
+                <th style="min-width: 300px;">Quantidades</th>
+                <th style="text-align: center;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registro in registros %}
+            <tr>
+                <td class="coluna-parte">{{ registro.parte.nome }}</td>
+                <td class="coluna-quantidades">
+                    {% for qtd in registro.quantidades %}
+                    <span class="quantidade-badge">{{ qtd }}</span>
+                    {% endfor %}
+                </td>
+                <td class="coluna-total">{{ registro.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="total-geral">
+    <div>TOTAL GERAL DE PEÇAS</div>
+    <div class="total-geral-valor">
+        {{ total_geral }}
+    </div>
+    <div style="font-size: 14px; opacity: 0.9;">
+        Soma de todas as partes
+    </div>
+</div>
+{% else %}
+<div class="empty-state">
+    <div style="font-size: 64px; margin-bottom: 20px;">📋</div>
+    <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+        Nenhuma quantidade registrada
+    </h3>
+    <p style="font-size: 16px; color: #6b7280;">
+        Esta ficha ainda não possui quantidades adicionadas.
+    </p>
+</div>
+{% endif %}
+
+<div class="action-buttons">
+    <a href="{% url 'home' %}" class="btn btn-secondary">← Voltar</a>
+    
+    {% if user.perfil.tipo == 'operador' and ficha.operador == user %}
+    <a href="{% url 'editar_ficha' ficha.id %}" class="btn btn-primary">✏️ Editar</a>
+    {% endif %}
+    
+    {% if user.perfil.tipo == 'qualidade' %}
+    <a href="{% url 'gerar_relatorio' ficha.id %}" class="btn btn-success">📄 Gerar PDF</a>
+    {% endif %}
+</div>
+
+{% endblock %}

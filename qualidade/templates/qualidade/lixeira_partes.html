@@ -1,0 +1,180 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Lixeira de Partes{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #111827;
+    }
+    
+    .partes-list {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .partes-list-header {
+        background: #ef4444;
+        color: white;
+        padding: 20px 25px;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .parte-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e5e7eb;
+        transition: all 0.2s;
+        background: #fef2f2;
+    }
+    
+    .parte-item:hover {
+        background: #fee2e2;
+    }
+    
+    .parte-item:last-child {
+        border-bottom: none;
+    }
+    
+    .parte-info {
+        flex: 1;
+    }
+    
+    .parte-nome {
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 5px;
+    }
+    
+    .parte-status {
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    .parte-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-icon {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-restore {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-restore:hover {
+        background: #059669;
+    }
+    
+    .btn-delete-permanent {
+        background: #991b1b;
+        color: white;
+    }
+    
+    .btn-delete-permanent:hover {
+        background: #7f1d1d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .parte-item {
+            flex-direction: column;
+            gap: 15px;
+            align-items: start;
+        }
+        
+        .parte-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🗑️ Lixeira de Partes</h2>
+        <p style="color: #6b7280; margin-top: 5px;">Restaure ou exclua permanentemente as partes</p>
+    </div>
+    <a href="{% url 'gerenciar_partes' %}" class="btn btn-secondary">← Voltar</a>
+</div>
+
+<div class="partes-list">
+    <div class="partes-list-header">
+        🗑️ Partes na Lixeira ({{ partes.count }})
+    </div>
+    
+    {% if partes %}
+        {% for parte in partes %}
+        <div class="parte-item">
+            <div class="parte-info">
+                <div class="parte-nome">{{ parte.nome }}</div>
+                <div class="parte-status">
+                    Excluída em: {{ parte.excluido_em|date:"d/m/Y H:i" }}
+                </div>
+            </div>
+            
+            <div class="parte-actions">
+                <form method="post" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja RESTAURAR esta parte?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="restaurar">
+                    <input type="hidden" name="parte_id" value="{{ parte.id }}">
+                    <button type="submit" class="btn-icon btn-restore">
+                        ↩️ Restaurar
+                    </button>
+                </form>
+                
+                <form method="post" style="display: inline;" onsubmit="return confirm('⚠️ ATENÇÃO! Esta ação é PERMANENTE e não pode ser desfeita. Deseja realmente EXCLUIR esta parte?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="excluir_permanente">
+                    <input type="hidden" name="parte_id" value="{{ parte.id }}">
+                    <button type="submit" class="btn-icon btn-delete-permanent">
+                        ⚠️ Excluir Permanente
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div style="font-size: 64px; margin-bottom: 20px;">✨</div>
+        <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+            Lixeira Vazia
+        </h3>
+        <p style="font-size: 16px;">
+            Nenhuma parte na lixeira
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

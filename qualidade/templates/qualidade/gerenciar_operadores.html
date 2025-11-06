@@ -1,0 +1,261 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Gerenciar Operadores{% endblock %}
+
+{% block content %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #111827;
+    }
+    
+    .create-section {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .create-form {
+        display: flex;
+        gap: 10px;
+        align-items: end;
+    }
+    
+    .form-group-inline {
+        flex: 1;
+    }
+    
+    .form-group-inline label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    .form-control-inline {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 16px;
+    }
+    
+    .form-control-inline:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .operadores-list {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .operadores-list-header {
+        background: #667eea;
+        color: white;
+        padding: 20px 25px;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    
+    .operador-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 25px;
+        border-bottom: 1px solid #e5e7eb;
+        transition: all 0.2s;
+    }
+    
+    .operador-item:hover {
+        background: #f9fafb;
+    }
+    
+    .operador-item:last-child {
+        border-bottom: none;
+    }
+    
+    .operador-info {
+        flex: 1;
+    }
+    
+    .operador-nome {
+        font-size: 18px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 5px;
+    }
+    
+    .operador-status {
+        font-size: 14px;
+        color: #6b7280;
+    }
+    
+    .operador-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .badge-ativo {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .badge-inativo {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .operador-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-icon {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .btn-toggle {
+        background: #fbbf24;
+        color: white;
+    }
+    
+    .btn-toggle:hover {
+        background: #f59e0b;
+    }
+    
+    .btn-delete {
+        background: #ef4444;
+        color: white;
+    }
+    
+    .btn-delete:hover {
+        background: #dc2626;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .create-form {
+            flex-direction: column;
+        }
+        
+        .operador-item {
+            flex-direction: column;
+            gap: 15px;
+            align-items: start;
+        }
+        
+        .operador-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title">🔧 Gerenciamento de nomes dos Operadores</h2>
+        <p style="color: #6b7280; margin-top: 5px;">Crie e gerencie nomes de operadores</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'lixeira_operadores' %}" class="btn btn-danger">🗑️ Lixeira</a>
+        <a href="{% url 'home' %}" class="btn btn-secondary">← Voltar</a>
+    </div>
+</div>
+
+<div class="create-section">
+    <h3 style="margin-bottom: 20px; color: #111827;">➕ Criar Nome do Operador</h3>
+    <form method="post" class="create-form">
+        {% csrf_token %}
+        <input type="hidden" name="acao" value="criar">
+        
+        <div class="form-group-inline">
+            <label for="nome">Nome do Operador *</label>
+            <input type="text" 
+                   id="nome" 
+                   name="nome" 
+                   class="form-control-inline" 
+                   required
+                   autofocus>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            Registrar Nome
+        </button>
+    </form>
+</div>
+
+<div class="operadores-list">
+    <div class="partes-list-header">
+        📋 Nomes Cadastrados ({{ operadores.count }})
+    </div>
+    
+    {% if operadores %}
+        {% for operador in operadores %}
+        <div class="operador-item">
+            <div class="operador-info">
+                <div class="operador-nome">
+                    {{ operador.nome }}
+                    {% if operador.ativo %}
+                    <span class="operador-badge badge-ativo">✓ Ativo</span>
+                    {% else %}
+                    <span class="operador-badge badge-inativo">✕ Inativo</span>
+                    {% endif %}
+                </div>
+                <div class="operador-status">
+                    Ordem: {{ operador.ordem }}
+                </div>
+            </div>
+            
+            <div class="operador-actions">
+                <form method="post" style="display:inline;" onsubmit="return confirm('Deseja mover este operador para a lixeira?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="acao" value="mover_lixeira">
+                    <input type="hidden" name="operador_id" value="{{ operador.id }}">
+                    <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div style="font-size: 64px; margin-bottom: 20px;">📦</div>
+        <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
+            Nenhum operador cadastrado
+        </h3>
+        <p style="font-size: 16px;">
+            Crie o primeiro nome de operador usando o formulário acima
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
