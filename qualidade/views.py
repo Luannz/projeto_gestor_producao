@@ -673,11 +673,12 @@ def gerar_relatorio_periodo(request):
         messages.error(request, 'Apenas usuários da qualidade podem gerar relatórios')
         return redirect('home')
     
-    # Buscar parâmetros
+    # Buscar parâmetros (MESMOS da view relatorios)
     data_inicio = request.GET.get('data_inicio')
     data_fim = request.GET.get('data_fim')
     parte_id = request.GET.get('parte_id')
     operador_id = request.GET.get('operador_id')
+    nome_ficha = request.GET.get('nome_ficha')
     
     if not data_inicio or not data_fim:
         messages.error(request, 'Selecione o período')
@@ -689,45 +690,75 @@ def gerar_relatorio_periodo(request):
     except locale.Error:
         locale.setlocale(locale.LC_ALL, '')
 
-    try:
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-    except ValueError:
-        data_inicio_obj = datetime.strptime(data_inicio, '%d de %B de %Y').date()
+    def parse_data(data_str):
+        formatos = [
+            '%Y-%m-%d',            # formato padrão do input date
+            '%d de %B de %Y',      # formato completo (ex: "2 de novembro de 2025")
+            '%d de %b de %Y',      # formato abreviado (ex: "2 de nov de 2025")
+            '%d/%m/%Y',            # formato numérico comum
+        ]
+        for formato in formatos:
+            try:
+                return datetime.strptime(data_str, formato).date()
+            except ValueError:
+                continue
+        raise ValueError(f"Formato de data inválido: {data_str}")
 
-    try:
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
-    except ValueError:
-        data_fim_obj = datetime.strptime(data_fim, '%d de %B de %Y').date()
+    data_inicio_obj = parse_data(data_inicio)
+    data_fim_obj = parse_data(data_fim)
+
     
-    # Buscar fichas
+    # Buscar fichas no período (IGUAL à view relatorios)
     fichas = Ficha.objects.filter(
         data__gte=data_inicio_obj,
         data__lte=data_fim_obj,
         excluido=False
     )
     
+    # Aplicar filtro de nome_ficha se selecionado (IGUAL)
+    if nome_ficha:
+        fichas = fichas.filter(nome_ficha=nome_ficha)
+    
+    # Filtrar por operador se selecionado (IGUAL)
     if operador_id:
         fichas = fichas.filter(operador_id=operador_id)
     
-    # Agrupar dados
+    # Agrupar dados por operador (IGUAL à view relatorios)
     dados_por_operador = {}
+    total_geral = 0
     
     for ficha in fichas:
         operador_nome = ficha.operador.get_full_name() or ficha.operador.username
         
         if operador_nome not in dados_por_operador:
-            dados_por_operador[operador_nome] = {}
+            dados_por_operador[operador_nome] = {
+                'operador': ficha.operador,
+                'partes': {},
+                'fichas': []
+            }
         
+        if ficha.nome_ficha not in dados_por_operador[operador_nome]['fichas']:
+            dados_por_operador[operador_nome]['fichas'].append(ficha.nome_ficha)
+        
+        # Buscar registros da ficha
         registros = ficha.registros.all().select_related('parte')
         
+        # Filtrar por parte se selecionado
         if parte_id:
             registros = registros.filter(parte_id=parte_id)
         
         for registro in registros:
             parte_nome = registro.parte.nome
-            if parte_nome not in dados_por_operador[operador_nome]:
-                dados_por_operador[operador_nome][parte_nome] = 0
-            dados_por_operador[operador_nome][parte_nome] += registro.total()
+            
+            if parte_nome not in dados_por_operador[operador_nome]['partes']:
+                dados_por_operador[operador_nome]['partes'][parte_nome] = 0
+            
+            # Soma por parte e soma geral
+            valor = registro.total()
+            dados_por_operador[operador_nome]['partes'][parte_nome] += valor
+            total_geral += valor
+    
+    # ====== AGORA GERAR O PDF ======
     
     # Criar PDF em paisagem
     buffer = BytesIO()
@@ -735,56 +766,122 @@ def gerar_relatorio_periodo(request):
     width, height = landscape(A4)
     
     # Título
-    p.setFont("Helvetica-Bold", 18)
+    p.setFont("Helvetica-Bold", 20)
     p.drawString(50, height - 50, "Relatório de Produção por Período")
     
     # Período
     p.setFont("Helvetica", 12)
-    p.drawString(50, height - 75, f"Período: {data_inicio_obj.strftime('%d/%m/%Y')} a {data_fim_obj.strftime('%d/%m/%Y')}")
+    periodo_texto = f"Período: {data_inicio_obj.strftime('%d/%m/%Y')} a {data_fim_obj.strftime('%d/%m/%Y')}"
+    p.drawString(50, height - 75, periodo_texto)
     
-    # Dados
-    y = height - 110
-    p.setFont("Helvetica-Bold", 14)
+    # Filtros aplicados
+    y = height - 95
+    p.setFont("Helvetica", 10)
     
-    for operador_nome, partes in dados_por_operador.items():
-        if y < 100:
+    if operador_id:
+        try:
+            operador = User.objects.get(id=operador_id)
+            operador_nome_filtro = operador.get_full_name() or operador.username
+            p.drawString(50, y, f"Operador: {operador_nome_filtro}")
+            y -= 15
+        except:
+            pass
+    
+    if parte_id:
+        try:
+            parte = ParteCalcado.objects.get(id=parte_id)
+            p.drawString(50, y, f"Parte: {parte.nome}")
+            y -= 15
+        except:
+            pass
+    
+    if nome_ficha:
+        p.drawString(50, y, f"Nome da Ficha: {nome_ficha}")
+        y -= 15
+    
+    # Linha separadora
+    y -= 10
+    p.line(50, y, width - 50, y)
+    y -= 30
+    
+    # Dados por operador
+    for operador_nome, dados in sorted(dados_por_operador.items()):
+        # Verificar se precisa de nova página
+        if y < 150:
             p.showPage()
             y = height - 50
         
         # Nome do operador
         p.setFont("Helvetica-Bold", 14)
-        p.drawString(50, y, operador_nome)
+        p.drawString(50, y, f"👤 {operador_nome}")
         y -= 25
+        
+        # Fichas do operador
+        if dados['fichas']:
+            p.setFont("Helvetica-Oblique", 10)
+            fichas_texto = "Fichas: " + ", ".join(dados['fichas'][:3])
+            if len(dados['fichas']) > 3:
+                fichas_texto += f" (+{len(dados['fichas']) - 3} mais)"
+            p.drawString(70, y, fichas_texto)
+            y -= 20
         
         # Tabela de partes
         p.setFont("Helvetica", 11)
-        for parte_nome, total in sorted(partes.items()):
-            if y < 50:
-                p.showPage()
-                y = height - 50
-            
-            p.drawString(70, y, f"• {parte_nome}:")
-            p.drawString(400, y, str(total))
-            y -= 20
         
-        # Total do operador
-        total_operador = sum(partes.values())
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(70, y, "TOTAL:")
-        p.drawString(400, y, str(total_operador))
-        y -= 40
+        if dados['partes']:
+            for parte_nome, total in sorted(dados['partes'].items()):
+                if y < 50:
+                    p.showPage()
+                    y = height - 50
+                
+                p.drawString(70, y, f"• {parte_nome}")
+                p.drawRightString(width - 100, y, str(total))
+                y -= 18
+            
+            # Total do operador
+            total_operador = sum(dados['partes'].values())
+            y -= 5
+            p.setFont("Helvetica-Bold", 12)
+            p.drawString(70, y, "TOTAL:")
+            p.drawRightString(width - 100, y, str(total_operador))
+            y -= 35
+        else:
+            p.setFont("Helvetica-Oblique", 10)
+            p.drawString(70, y, "Nenhuma produção no período")
+            y -= 30
     
     # Total geral
-    total_geral = sum(sum(partes.values()) for partes in dados_por_operador.values())
-    y -= 20
+    if y < 80:
+        p.showPage()
+        y = height - 50
+    
+    y -= 10
+    p.line(50, y, width - 50, y)
+    y -= 30
+    
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, y, f"TOTAL GERAL: {total_geral}")
+    p.drawString(50, y, "TOTAL GERAL:")
+    p.drawRightString(width - 100, y, str(total_geral))
+    
+    # Rodapé
+    p.setFont("Helvetica", 8)
+    p.drawString(50, 30, f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}")
+    p.drawRightString(width - 50, 30, f"Usuário: {request.user.username}")
     
     p.save()
     
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="relatorio_periodo_{data_inicio}_{data_fim}.pdf"'
+    
+    # Nome do arquivo
+    nome_arquivo = f'relatorio_{data_inicio_obj.strftime("%Y%m%d")}_{data_fim_obj.strftime("%Y%m%d")}'
+    if operador_id:
+        nome_arquivo += f'_operador{operador_id}'
+    if nome_ficha:
+        nome_arquivo += f'_{nome_ficha[:20]}'
+    nome_arquivo += '.pdf'
+    
+    response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
     
     return response
 

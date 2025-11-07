@@ -4,7 +4,6 @@
 
 {% block content %}
 {% load qualidade_filters %}
-
 <style>
     .page-header {
         display: flex;
@@ -182,7 +181,7 @@
                        id="data_inicio" 
                        name="data_inicio" 
                        class="form-control-filtro"
-                       value="{{ data_inicio }}"
+                       value="{{ data_inicio|date:'Y-m-d' }}"
                        required>
             </div>
             
@@ -192,22 +191,33 @@
                        id="data_fim" 
                        name="data_fim" 
                        class="form-control-filtro"
-                       value="{{ data_fim }}"
+                       value="{{ data_fim|date:'Y-m-d' }}"
                        required>
             </div>
             
             <div class="form-group-filtro">
-                <label for="nome_ficha">Nome da Ficha</label>
-                <select id="nome_ficha" name="nome_ficha" class="form-control-filtro">
-                    <option value="">Todas as fichas</option>
-                    {% for nome in nomes_fichas %}
-                        <option value="{{ nome }}" {% if nome_ficha == nome %}selected{% endif %}>
-                            {{ nome }}
-                        </option>
+                <label for="operador_id">Operador (Opcional)</label>
+                <select id="operador_id" name="operador_id" class="form-control-filtro">
+                    <option value="">Todos os operadores</option>
+                    {% for operador in operadores %}
+                    <option value="{{ operador.id }}" {% if operador_id == operador.id|stringformat:"s" %}selected{% endif %}>
+                        {{ operador.get_full_name|default:operador.username }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
-
+            
+            <div class="form-group-filtro">
+                <label for="nome_ficha">Nome da Ficha (Opcional)</label>
+                <select id="nome_ficha" name="nome_ficha" class="form-control-filtro">
+                    <option value="">Todas as fichas</option>
+                    {% for nome in nomes_fichas %}
+                    <option value="{{ nome }}" {% if nome_ficha == nome %}selected{% endif %}>
+                        {{ nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
             
             <div class="form-group-filtro">
                 <label for="parte_id">Parte (Opcional)</label>
@@ -228,7 +238,7 @@
             </button>
             
             {% if dados_relatorio %}
-            <a href="{% url 'gerar_relatorio_periodo' %}?data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% if operador_id %}&operador_id={{ operador_id }}{% endif %}{% if parte_id %}&parte_id={{ parte_id }}{% endif %}" 
+            <a href="{% url 'gerar_relatorio_periodo' %}?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}{% if operador_id %}&operador_id={{ operador_id }}{% endif %}{% if parte_id %}&parte_id={{ parte_id }}{% endif %}{% if nome_ficha %}&nome_ficha={{ nome_ficha }}{% endif %}" 
                class="btn btn-success">
                 📄 Exportar PDF
             </a>
@@ -244,7 +254,7 @@
         <div>
             <h3 style="font-size: 20px; margin: 0;">Resultado da Consulta</h3>
             <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
-                Período: {{ data_inicio|date:"d/m/Y" }} até {{ data_fim|date:"d/m/Y" }}
+                Período: {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}
             </p>
         </div>
         <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-weight: 600;">
@@ -252,16 +262,34 @@
         </div>
     </div>
     
-    {% for operador_nome, dados in dados_relatorio.items %}
+    {% for nome_ficha_key, dados in dados_relatorio.items %}
     <div class="operador-section">
         <div class="operador-nome">
-            👤 {{ operador_nome }}
+            📋 {{ nome_ficha_key }}
         </div>
-        {% for nome_ficha in dados.fichas %}
-            <div class="nome-ficha">
-                📄 {{ nome_ficha }}
-            </div>
-        {% endfor %}
+        
+        <!-- Operadores que trabalharam nesta ficha -->
+        {% if dados.operadores %}
+        <div style="background: #f3f4f6; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;">
+            <strong style="font-size: 14px; color: #374151;">👤 Operadores:</strong>
+            <span style="font-size: 14px; color: #6b7280;">{{ dados.operadores|join:", " }}</span>
+        </div>
+        {% endif %}
+        
+        <!-- Datas -->
+        {% if dados.datas %}
+        <div style="background: #f3f4f6; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">
+            <strong style="font-size: 14px; color: #374151;">📅 Datas:</strong>
+            <span style="font-size: 14px; color: #6b7280;">
+                {% for data in dados.datas|slice:":5" %}
+                    {{ data|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                {% if dados.datas|length > 5 %}
+                    (+{{ dados.datas|length|add:"-5" }} mais)
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
         
         {% if dados.partes %}
         <table class="partes-tabela">
@@ -279,9 +307,9 @@
                 </tr>
                 {% endfor %}
                 <tr class="total-operador">
-                    <td>TOTAL</td>
+                    <td><strong>TOTAL</strong></td>
                     <td style="text-align: right;" class="quantidade-valor">
-                        {{ dados.partes|sum_values }}
+                        {{ total_geral }}
                     </td>
                 </tr>
             </tbody>
@@ -296,8 +324,7 @@
     <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 25px; text-align: center;">
         <div style="font-size: 14px; opacity: 0.9;">TOTAL GERAL</div>
         <div style="font-size: 36px; font-weight: 700; margin: 10px 0;">
-            {% widthratio dados_relatorio.values|length 1 1 as count %}
-            {{ total_geral}}
+            {{ total_geral }}
         </div>
         <div style="font-size: 14px; opacity: 0.9;">peças produzidas no período</div>
     </div>
