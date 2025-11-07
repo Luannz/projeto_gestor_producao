@@ -112,6 +112,15 @@
         gap: 10px;
     }
     
+    .ficha-nome {
+        font-weight: 700;
+        color: #374151;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
     .partes-tabela {
         width: 100%;
         border-collapse: collapse;
@@ -196,9 +205,9 @@
             </div>
             
             <div class="form-group-filtro">
-                <label for="operador_id">Operador (Opcional)</label>
+                <label for="operador_id">Perfil (Opcional)</label>
                 <select id="operador_id" name="operador_id" class="form-control-filtro">
-                    <option value="">Todos os operadores</option>
+                    <option value="">Todos os Perfis</option>
                     {% for operador in operadores %}
                     <option value="{{ operador.id }}" {% if operador_id == operador.id|stringformat:"s" %}selected{% endif %}>
                         {{ operador.get_full_name|default:operador.username }}
@@ -266,6 +275,9 @@
     <div class="operador-section">
         <div class="operador-nome">
             📋 {{ nome_ficha_key }}
+        </div>
+        <div class="ficha-nome">
+            Nome na ficha: {{ nome_ficha }}
         </div>
         
         <!-- Operadores que trabalharam nesta ficha -->
