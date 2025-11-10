@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('telas/', views.telas, name= 'telas'),
     path('relatorios/', views.relatorios, name='relatorios'),
     path('relatorios/gerar-pdf/', views.gerar_relatorio_periodo, name='gerar_relatorio_periodo'),
     path('partes/', views.gerenciar_partes, name='gerenciar_partes'),
