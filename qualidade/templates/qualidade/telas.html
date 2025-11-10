@@ -143,7 +143,7 @@
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
+            gap: 15px;
             animation: fadeIn 0.8s ease-in;
         }
         
@@ -153,13 +153,7 @@
             padding: 30px;
             color: #1e3c72;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-            animation: slideUp 0.5s ease-out;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            transition: all 0.3s ease; 
         }
         
         .card-header {
@@ -406,15 +400,15 @@
 
     <!-- Indicador de Auto-refresh (opcional) -->
     <div class="refresh-indicator">
-        ⟳ Atualiza automaticamente a cada 30 segundos
+        ⟳ Atualiza automaticamente a cada 50 segundos
     </div>
 
     <!-- Script de Auto-refresh -->
     <script>
-        // Auto-refresh a cada 30 segundos
+        // Auto-refresh a cada 50 segundos
         setTimeout(function() {
             location.reload();
-        }, 30000);
+        }, 50000);
         
         // Adicionar animação ao carregar
         document.addEventListener('DOMContentLoaded', function() {
