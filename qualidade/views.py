@@ -69,7 +69,7 @@ def home(request):
     if data_filtro:
         fichas = fichas.filter(data=data_filtro)
 
-    paginator = Paginator(fichas.order_by('-data'), 21)  #ordena por data desc
+    paginator = Paginator(fichas.order_by('-data', '-id', '-criada_em'), 21)  #ordena por data desc
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
