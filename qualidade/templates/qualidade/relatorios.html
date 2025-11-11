@@ -247,10 +247,10 @@
             </button>
             
             {% if dados_relatorio %}
-            <a href="{% url 'gerar_relatorio_periodo' %}?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}{% if operador_id %}&operador_id={{ operador_id }}{% endif %}{% if parte_id %}&parte_id={{ parte_id }}{% endif %}{% if nome_ficha %}&nome_ficha={{ nome_ficha }}{% endif %}" 
-               class="btn btn-success">
+            <a href="{% url 'gerar_relatorio_periodo' %}?data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}&parte_id={{ request.GET.parte_id }}&operador_id={{ request.GET.operador_id }}&nome_ficha={{ request.GET.nome_ficha|urlencode }}" class="btn btn-success">
                 📄 Exportar PDF
             </a>
+
             {% endif %}
         </div>
     </form>
@@ -261,86 +261,69 @@
 <div class="resultado-card">
     <div class="resultado-header">
         <div>
-            <h3 style="font-size: 20px; margin: 0;">Resultado da Consulta</h3>
-            <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">
-                Período: {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}
-            </p>
-        </div>
-        <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; font-weight: 600;">
-            {{ dados_relatorio|length }} operador{{ dados_relatorio|length|pluralize:"es" }}
+            <h3>Resultado da Consulta</h3>
+            <p>Período: {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}</p>
         </div>
     </div>
-    
-    {% for nome_ficha_key, dados in dados_relatorio.items %}
+
+    {% for operador_nome, dados in dados_relatorio.items %}
     <div class="operador-section">
-        <div class="operador-nome">
-            📋 {{ nome_ficha_key }}
-        </div>
-        <div class="ficha-nome">
-            Nome na ficha: {{ nome_ficha }}
-        </div>
-        
-        <!-- Operadores que trabalharam nesta ficha -->
-        {% if dados.operadores %}
-        <div style="background: #f3f4f6; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px;">
-            <strong style="font-size: 14px; color: #374151;">👤 Operadores:</strong>
-            <span style="font-size: 14px; color: #6b7280;">{{ dados.operadores|join:", " }}</span>
-        </div>
-        {% endif %}
-        
-        <!-- Datas -->
-        {% if dados.datas %}
-        <div style="background: #f3f4f6; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">
-            <strong style="font-size: 14px; color: #374151;">📅 Datas:</strong>
-            <span style="font-size: 14px; color: #6b7280;">
-                {% for data in dados.datas|slice:":5" %}
-                    {{ data|date:"d/m/Y" }}{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-                {% if dados.datas|length > 5 %}
-                    (+{{ dados.datas|length|add:"-5" }} mais)
-                {% endif %}
-            </span>
-        </div>
-        {% endif %}
-        
-        {% if dados.partes %}
-        <table class="partes-tabela">
-            <thead>
-                <tr>
-                    <th>Parte</th>
-                    <th style="text-align: right; width: 150px;">Quantidade Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for parte_nome, total in dados.partes.items %}
-                <tr>
-                    <td>{{ parte_nome }}</td>
-                    <td style="text-align: right;" class="quantidade-valor">{{ total }}</td>
-                </tr>
-                {% endfor %}
-                <tr class="total-operador">
-                    <td><strong>TOTAL</strong></td>
-                    <td style="text-align: right;" class="quantidade-valor">
-                        {{ total_geral }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <h2>{{ operador_nome }}</h2>
+
+        {% if dados.fichas %}
+            {% for nome_ficha, partes in dados.fichas.items %}
+                <h4>Nome: {{ nome_ficha }}</h4>
+                <table class="partes-tabela">
+                    <thead>
+                        <tr>
+                            <th>Parte</th>
+                            <th style="text-align:right;">Quantidade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for parte_nome, qtd in partes.items %}
+                        <tr>
+                            <td>{{ parte_nome }}</td>
+                            <td style="text-align:right;">{{ qtd }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endfor %}
+
+            {% if not request.GET.nome_ficha %}
+                <h4 style="margin-top:15px;">Totais do Perfil:</h4>
+                <table class="partes-tabela">
+                    <thead>
+                        <tr>
+                            <th>Parte</th>
+                            <th style="text-align:right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for parte_nome, total in dados.totais_partes.items %}
+                        <tr>
+                            <td>{{ parte_nome }}</td>
+                            <td style="text-align:right;">{{ total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
         {% else %}
-        <p style="color: #6b7280; font-style: italic;">Nenhuma produção no período</p>
+            <p style="color:#6b7280;font-style:italic;">Sem resultados</p>
         {% endif %}
     </div>
     {% endfor %}
-    
-    <!-- Total Geral -->
-    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 25px; text-align: center;">
-        <div style="font-size: 14px; opacity: 0.9;">TOTAL GERAL</div>
-        <div style="font-size: 36px; font-weight: 700; margin: 10px 0;">
-            {{ total_geral }}
-        </div>
-        <div style="font-size: 14px; opacity: 0.9;">peças produzidas no período</div>
+
+    <div style="background:#059669;color:white;padding:20px;text-align:center;">
+        <div style="font-size:14px;">TOTAL GERAL</div>
+        <div style="font-size:36px;font-weight:700;">{{ total_geral }}</div>
+        <div style="font-size:14px;">peças produzidas no período</div>
     </div>
 </div>
+
 {% elif data_inicio and data_fim %}
 <div class="empty-state">
     <div style="font-size: 64px; margin-bottom: 20px;">📊</div>
