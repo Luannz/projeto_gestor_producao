@@ -90,4 +90,12 @@
         </form>
     </div>
 </div>
+<script>
+const form = document.querySelector("form");
+form.addEventListener("submit", () => {
+  const button = form.querySelector("button[type=submit]");
+  button.disabled = true;
+  button.textContent = "Entrando...";
+});
+</script>
 {% endblock %}

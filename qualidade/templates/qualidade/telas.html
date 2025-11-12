@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telão - Produção do Dia</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -40,7 +41,7 @@
             font-size: 24px;
             margin-top: 20px;
         }
-        
+
         .data-badge {
             background: rgba(255,255,255,0.2);
             padding: 12px 30px;
@@ -49,6 +50,10 @@
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        .btn.btn-secondary.display-mode {
+            border-radius: 50px
         }
         
         .total-geral-badge {
@@ -137,6 +142,21 @@
         .date-selector button:hover {
             transform: scale(1.05);
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        /* Container do Gráfico */
+        .grafico-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            animation: fadeIn 0.8s ease-in;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        #graficoProducao {
+            max-height: 70vh;
         }
         
         /* Grid de Cards */
@@ -288,7 +308,6 @@
             opacity: 0.5;
         }
         
-
         /* Responsivo para telas menores */
         @media (max-width: 1400px) {
             .cards-grid {
@@ -327,7 +346,7 @@
             }
 
             .fichas-grid {
-                grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); /* Mais cards por linha */
+                grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
                 gap: 40px;
             }
 
@@ -335,7 +354,7 @@
                 padding: 40px;
                 border-radius: 20px;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-                transform: scale(1.05); /* Dá uma leve ampliação */
+                transform: scale(1.05);
                 transition: transform 0.3s ease;
             }
 
@@ -371,7 +390,6 @@
                 margin-top: 20px;
             }
         }
-
     </style>
 </head>
 <body>
@@ -392,6 +410,16 @@
         <h1>📊 Dashboard de Produção</h1>
         
         <div class="header-info">
+            <div>
+                <a class="btn btn-secondary display-mode"
+                href="?modo={% if modo == 'grafico' %}lista{% else %}grafico{% endif %}{% if data_selecionada != data_hoje %}&data={{ data_selecionada|date:'Y-m-d' }}{% endif %}">
+                {% if modo == 'grafico' %}
+                    📋 Ver Lista
+                {% else %}
+                    📊 Ver Gráfico
+                {% endif %}
+                </a>
+            </div>
             <div class="data-badge">
                 <span>📅</span>
                 <span>{{ data_selecionada|date:"d/m/Y" }}</span>
@@ -399,16 +427,21 @@
                 <span style="font-size: 14px; opacity: 0.8;">(Hoje)</span>
                 {% endif %}
             </div>
-            
             <div class="total-geral-badge">
                 <span>TOTAL DO DIA: {{ total_dia }} peças</span>
             </div>
             <div>
-                <a href="{% url 'home' %}" class="btn btn-secondary voltar-badge">← Voltar</a>
+                <a href="{% url 'home' %}" class="voltar-badge btn btn-secondary">← Voltar</a>
             </div>
         </div>
     </div>
 
+    {% if modo == 'grafico' %}
+    <!-- Modo Gráfico -->
+    <div class="grafico-container">
+        <canvas id="graficoProducao"></canvas>
+    </div>
+    {% else %}
     <!-- Cards de Produção -->
     {% if dados_telao %}
     <div class="cards-grid">
@@ -451,14 +484,151 @@
         <div class="empty-text">Nenhuma produção registrada neste dia</div>
     </div>
     {% endif %}
+    {% endif %}
 
     <!-- Indicador de Auto-refresh (opcional) -->
     <div class="refresh-indicator">
         ⟳ Atualiza automaticamente a cada 50 segundos
     </div>
 
-    <!-- Script de Auto-refresh -->
+    <!-- Script de Auto-refresh e Gráfico -->
     <script>
+        {% if modo == 'grafico' and dados_telao %}
+        // Preparar dados para o gráfico
+        const dadosGrafico = {
+            {% for nome_ficha, dados in dados_telao.items %}
+            '{{ dados.nome|escapejs }}': {{ dados.total }},
+            {% endfor %}
+        };
+
+        const labels = Object.keys(dadosGrafico);
+        const valores = Object.values(dadosGrafico);
+
+        // Gerar cores vibrantes para cada barra
+        const cores = [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(118, 75, 162, 0.8)',
+            'rgba(237, 100, 166, 0.8)',
+            'rgba(255, 154, 158, 0.8)',
+            'rgba(255, 183, 77, 0.8)',
+            'rgba(129, 212, 250, 0.8)',
+            'rgba(102, 187, 106, 0.8)',
+            'rgba(255, 138, 101, 0.8)',
+        ];
+
+        const coresBorda = [
+            'rgba(102, 126, 234, 1)',
+            'rgba(118, 75, 162, 1)',
+            'rgba(237, 100, 166, 1)',
+            'rgba(255, 154, 158, 1)',
+            'rgba(255, 183, 77, 1)',
+            'rgba(129, 212, 250, 1)',
+            'rgba(102, 187, 106, 1)',
+            'rgba(255, 138, 101, 1)',
+        ];
+
+        // Criar gráfico
+        const ctx = document.getElementById('graficoProducao').getContext('2d');
+        const grafico = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Peças Produzidas',
+                    data: valores,
+                    backgroundColor: cores.slice(0, labels.length),
+                    borderColor: coresBorda.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    barPercentage: 0.7,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Produção por Ficha',
+                        font: {
+                            size: 24,
+                            weight: 'bold'
+                        },
+                        color: '#1e3c72',
+                        padding: 20
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 14
+                        },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return context.parsed.y + ' peças';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: {
+                                size: 14,
+                                weight: '600'
+                            },
+                            color: '#374151',
+                            callback: function(value) {
+                                return value.toLocaleString('pt-BR');
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Quantidade de Peças',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#6b7280'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 14,
+                                weight: '600'
+                            },
+                            color: '#374151',
+                            maxRotation: 45,
+                            minRotation: 0
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+        {% endif %}
+
         // Auto-refresh a cada 50 segundos
         setTimeout(function() {
             location.reload();

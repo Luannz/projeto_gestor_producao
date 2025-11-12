@@ -800,8 +800,8 @@ def gerar_relatorio_periodo(request):
             
             # Cabeçalho da tabela de partes
             p.setFont("Helvetica-Bold", 9)
-            p.drawString(90, y, "Parte")
-            p.drawRightString(width - 100, y, "Quantidade")
+            p.drawString(90, y, "Peças")
+            p.drawRightString(width - 100, y, "Quantidade de Pares")
             y -= 2
             p.line(90, y, width - 100, y)
             y -= 12
@@ -953,6 +953,7 @@ def telas(request):
     """Tela para exibicao em telao como um dashboard da produção"""
     # Busca a data selecionada ou usar hoje
     data_selecionada = request.GET.get('data')
+    modo = request.GET.get('modo', 'lista')
     
     if data_selecionada:
         try:
@@ -1002,5 +1003,6 @@ def telas(request):
         'data_selecionada': data_obj,
         'total_dia': total_dia,
         'data_hoje': date.today(),
+        'modo': modo,
     }
     return render(request, 'qualidade/telas.html', context)
