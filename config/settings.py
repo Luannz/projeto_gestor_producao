@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +30,7 @@ SECRET_KEY = 'django-insecure-y9kiba)9@lf%67of*cvx)v_d3c7%5w8f(9b1)s3mgi@v3pi$^&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 # LEMBRAR DE MUDAR PRA FALSE QUANDO FOR SUBIR PRA HOSPEDAGEM
-ALLOWED_HOSTS = ['sistema-qualidade.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['sistema-qualidade.onrender.com', 'localhost', '127.0.0.1','192.168.2.4']
 
 
 # Application definition
@@ -75,22 +78,40 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if os.getenv('RENDER'):
-    # 🔹 Banco de dados do Render (PostgreSQL)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    # Render ou qualquer serviço que forneça DATABASE_URL
     DATABASES = {
-        'default': dj_database_url.config(
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True  # importante para Render
+            ssl_require=False
         )
     }
+
 else:
-    # 🔹 Banco de dados local (SQLite)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+    # Ambiente local (SQLite) OU servidor sem credenciais ainda
+    if os.getenv("DB_NAME"):
+        # Se houver variáveis do postgres → usa postgres local/servidor
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME'),
+                'USER': os.getenv('DB_USER'),
+                'PASSWORD': os.getenv('DB_PASSWORD'),
+                'HOST': os.getenv('DB_HOST', 'localhost'),
+                'PORT': os.getenv('DB_PORT', '5432'),
+            }
         }
-    }
+    else:
+        # Se nada foi informado → usa SQLite
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
