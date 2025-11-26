@@ -36,7 +36,10 @@ def home(request):
     if data_filtro:
         fichas = fichas.filter(data=data_filtro)
 
-    paginator = Paginator(fichas.order_by('-data', '-id', '-criada_em'), 21)
+    # limitar o número de páginas (10 paginas x 21) que da 10 páginas com 21 fichas
+    fichas_queryset = fichas.order_by('-data', '-id', '-criada_em')[:210]
+
+    paginator = Paginator(fichas_queryset, 21)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
