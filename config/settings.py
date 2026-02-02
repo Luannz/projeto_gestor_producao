@@ -25,14 +25,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-y9kiba)9@lf%67of*cvx)v_d3c7%5w8f(9b1)s3mgi@v3pi$^&'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-y9kiba)9@lf%67of*cvx)v_d3c7%5w8f(9b1)s3mgi@v3pi$^&')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv ('DEBUG' , 'True') == 'True'
 # LEMBRAR DE MUDAR PRA FALSE QUANDO FOR SUBIR PRA HOSPEDAGEM
-ALLOWED_HOSTS = ['sistema-qualidade.onrender.com', 'localhost', '127.0.0.1','192.168.2.4']
+ALLOWED_HOSTS = ['*', 'localhost', '127.0.0.1']
 
-
+CSRF_TRUSTED_ORIGINS = [
+    'http://192.168.2.244', 
+    'http://192.168.2.244:8001', 
+    'http://localhost:8000',
+    'http://127.0.0.1:8000'
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -47,6 +52,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -150,6 +156,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ## USAR ESSE STATIC ROOT SOMENTE SE FOR HOSPEDAR EM RENDER,NGINX ETC
 ## STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
