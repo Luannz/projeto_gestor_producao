@@ -3,8 +3,6 @@ services:
     image: postgres:15
     container_name: gestorproducao_db
     restart: always
-    env_file:        
-      - .env
     environment:
       - POSTGRES_DB=${DB_NAME:-gestorproducao}       
       - POSTGRES_USER=${DB_USER:-postgres}
@@ -21,8 +19,6 @@ services:
     build: .
     container_name: gestorproducao_web
     restart: always
-    env_file:
-      - .env
     ports:
       - "8081:8000"
     command: >
