@@ -642,10 +642,18 @@ def visualizar_ficha_inventario(request, ficha_id):
     # ======================
     # STATS (sobre itens filtrados)
     # ======================
-    total_pares = sum(
-        min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
-        for item in itens
-    )
+    
+    # Adicionamos atributos extras em cada item para usar no template
+    for item in itens:
+        # O par é sempre o menor valor entre os dois
+        item.pares = min(item.quantidade_pe_esquerdo, item.quantidade_pe_direito)
+        
+        # A sobra é a diferença
+        item.sobra_esquerda = item.quantidade_pe_esquerdo - item.pares
+        item.sobra_direita = item.quantidade_pe_direito - item.pares
+
+    # O total geral de pares da ficha toda (filtrada)
+    total_pares = sum(item.pares for item in itens)
 
     modelos_diferentes = itens.values("modelo__nome").distinct().count()
 

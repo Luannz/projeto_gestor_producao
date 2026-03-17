@@ -541,6 +541,8 @@
                     <th>Tamanho</th>
                     <th style="text-align: center;">Pé Esquerdo</th>
                     <th style="text-align: center;">Pé Direito</th>
+                    <th style="text-align: center;" class="table-success">Pares Formados</th>
+                    <th style="text-align: center;">Avulsos</th>
                 </tr>
             </thead>
             <tbody>
@@ -549,8 +551,31 @@
                     <td class="coluna-modelo">{{ item.modelo.nome }}</td>
                     <td class="coluna-cor">{{ item.cor.nome }}</td>
                     <td class="coluna-tamanho">Nº {{ item.tamanho.numero }}</td>
-                    <td class="coluna-quantidade">{{ item.quantidade_pe_esquerdo }}</td>
-                    <td class="coluna-quantidade">{{ item.quantidade_pe_direito }}</td>
+                    
+                    <td class="coluna-quantidade text-center">
+                        {{ item.quantidade_pe_esquerdo }}
+                    </td>
+                    
+                    <td class="coluna-quantidade text-center">
+                        {{ item.quantidade_pe_direito }}
+                    </td>
+
+                    <td class="coluna-quantidade text-center fw-bold" style="background-color: rgba(0,255,0,0.05);">
+                        <span class="badge bg-success">{{ item.pares }} Pares</span>
+                    </td>
+                    <td class="coluna-quantidade text-center">
+                        {% if item.sobra_esquerda > 0 %}
+                            <span>
+                                {{ item.sobra_esquerda }} Esq.
+                            </span>
+                        {% elif item.sobra_direita > 0 %}
+                            <span>
+                                {{ item.sobra_direita }} Dir. 
+                            </span>
+                        {% else %}
+                            <span class="text-muted opacity-25">-</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

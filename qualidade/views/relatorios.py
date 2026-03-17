@@ -169,90 +169,103 @@ def gerar_relatorio(request, ficha_id):
 
 @login_required
 def gerar_relatorio_ficha_inventario(request, ficha_id):
-    """Gerar relatório PDF de uma ficha de inventário"""
     ficha = get_object_or_404(FichaInventario, id=ficha_id)
+    itens = ficha.itens.select_related("modelo", "tamanho")
 
-    itens = ficha.itens.select_related("modelo", "cor", "tamanho")
+    # --- Cálculos de Totais ---
+    total_pares_geral = 0
+    total_avulsos_geral = 0
 
-    # Totais
-    totais = itens.aggregate(
-        total_pd=Sum("quantidade_pe_direito"),
-        total_pe=Sum("quantidade_pe_esquerdo"),
-    )
+    for item in itens:
+        pares = min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
+        total_pares_geral += pares
+        # A sobra de uma linha é a diferença absoluta entre os pés
+        total_avulsos_geral += abs(item.quantidade_pe_direito - item.quantidade_pe_esquerdo)
 
-    total_pd = totais["total_pd"] or 0
-    total_pe = totais["total_pe"] or 0
-    total_pares = sum(
-    min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
-    for item in itens
-    )
-
-
-    # Criar PDF
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # Cabeçalho
+    # --- Cabeçalho ---
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, height - 50, "Relatório de Ficha de Inventário")
+    p.drawString(50, height - 50, "Relatório de Inventário de Calçados")
 
-    p.setFont("Helvetica", 11)
-    p.drawString(50, height - 75, f"Ficha nº: {ficha.id}")
-    p.drawString(50, height - 95, f"Data da ficha: {ficha.data.strftime('%d/%m/%Y')}")
-    p.drawString(
-        50,
-        height - 115,
-        f"Operador: {ficha.operador.get_full_name() or ficha.operador.username}"
-    )
-    p.drawString(50,height - 135,f"Nome na ficha: {ficha.nome_ficha}")  # ou ficha.nome_ficha
-    # Totais gerais
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, height - 170, f"Total Pé Direito: {total_pd}")
-    p.drawString(250, height - 170, f"Total Pé Esquerdo: {total_pe}")
-    p.drawString(450, height - 170, f"Total Pares: {total_pares}")
-
-
-    # Cabeçalho da tabela
-    y = height - 205
-    p.setFont("Helvetica-Bold", 11)
-    p.drawString(50, y, "Modelo")
-    p.drawString(180, y, "Cor")
-    p.drawString(280, y, "Tam.")
-    p.drawString(340, y, "PD")
-    p.drawString(390, y, "PE")
-    p.drawString(440, y, "Total")
-
-    y -= 20
     p.setFont("Helvetica", 10)
+    p.drawString(50, height - 75, f"Ficha: {ficha.id} | Nome: {ficha.nome_ficha}")
+    p.drawString(50, height - 90, f"Data: {ficha.data.strftime('%d/%m/%Y')} | Operador: {ficha.operador.username}")
 
-    # Itens
+    # --- Bloco de Totais Centralizado ---
+    # Desenhando o retângulo
+    p.rect(50, height - 145, 500, 40) 
+    
+    p.setFont("Helvetica-Bold", 12)
+    
+    # Texto de Pares (Verde)
+    p.setFillColorRGB(0, 0.4, 0)
+    texto_pares = f"TOTAL DE PARES: {total_pares_geral}"
+    p.drawString(120, height - 130, texto_pares)
+    
+    # Texto de Avulsos (Vermelho) ao lado
+    p.setFillColorRGB(0.8, 0, 0)
+    texto_avulsos = f"TOTAL DE AVULSOS: {total_avulsos_geral}"
+    p.drawString(330, height - 130, texto_avulsos)
+    
+    p.setFillColorRGB(0, 0, 0) # Reset para preto
+
+    # --- Cabeçalho da Tabela ---
+    y = height - 170
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(50, y, "Modelo")
+    p.drawString(250, y, "Tam.")
+    p.drawString(300, y, "Pé Dir.")
+    p.drawString(360, y, "Pé Esq.")
+    p.drawString(420, y, "Pares")
+    p.drawString(480, y, "Avulsos")
+    
+    p.line(50, y-5, 550, y-5)
+    y -= 20
+
+    # --- Listagem de Itens ---
+    p.setFont("Helvetica", 10)
     for item in itens:
         if y < 50:
             p.showPage()
             y = height - 50
             p.setFont("Helvetica", 10)
 
-        total_item = item.quantidade_pe_direito + item.quantidade_pe_esquerdo
+        pares = min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
+        sobra_esq = item.quantidade_pe_esquerdo - pares
+        sobra_dir = item.quantidade_pe_direito - pares
 
-        p.drawString(50, y, item.modelo.nome[:20])
-        p.drawString(180, y, item.cor.nome[:15])
-        p.drawString(280, y, str(item.tamanho.numero))
-        p.drawString(340, y, str(item.quantidade_pe_direito))
-        p.drawString(390, y, str(item.quantidade_pe_esquerdo))
-        p.drawString(440, y, str(total_item))
+        p.drawString(50, y, item.modelo.nome[:35])
+        p.drawString(255, y, str(item.tamanho.numero))
+        p.drawString(305, y, str(item.quantidade_pe_direito))
+        p.drawString(365, y, str(item.quantidade_pe_esquerdo))
+        
+        # Coluna Pares
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(425, y, str(pares))
+        p.setFont("Helvetica", 10)
+
+        # Coluna Avulsos
+        if sobra_esq > 0:
+            p.setFillColorRGB(0.8, 0, 0)
+            p.drawString(480, y, f"{sobra_esq} Esq.")
+            p.setFillColorRGB(0, 0, 0)
+        elif sobra_dir > 0:
+            p.setFillColorRGB(0.8, 0, 0)
+            p.drawString(480, y, f"{sobra_dir} Dir.")
+            p.setFillColorRGB(0, 0, 0)
+        else:
+            p.drawString(480, y, "-")
 
         y -= 18
 
     p.save()
     buffer.seek(0)
-
     response = HttpResponse(buffer, content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'attachment; filename="relatorio_ficha_inventario_{ficha.id}.pdf"'
-    )
+    response["Content-Disposition"] = f'attachment; filename="ficha_{ficha.id}.pdf"'
     return response
-
 
 
 @login_required
