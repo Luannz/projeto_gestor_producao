@@ -193,7 +193,7 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
     p.drawString(40, height - 75, f"Ficha: {ficha.id} | Nome: {ficha.nome_ficha}")
     p.drawString(40, height - 90, f"Data: {ficha.data.strftime('%d/%m/%Y')} | Operador: {ficha.operador.username}")
 
-    # --- Bloco de Totais (Largura de 520, terminando em 560) ---
+    # --- Bloco de Totais ---
     p.rect(40, height - 145, 520, 40) 
     p.setFont("Helvetica-Bold", 12)
     p.setFillColorRGB(0, 0.4, 0)
@@ -202,18 +202,18 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
     p.drawString(330, height - 130, f"TOTAL DE AVULSOS: {total_avulsos_geral}")
     p.setFillColorRGB(0, 0, 0)
 
-    # --- Cabeçalho da Tabela (Alinhado com o Retângulo) ---
+    # --- Cabeçalho da Tabela (Ajuste fino para a esquerda) ---
     y = height - 170
     p.setFont("Helvetica-Bold", 9)
     
-    # Coordenadas X calculadas para usar o espaço 40 -> 560
+    # Coordenadas X ajustadas para não "estourar" a margem 560
     col_mod = 40
     col_cor = 160
-    col_tam = 370
-    col_esq = 405
-    col_dir = 450
-    col_par = 495
-    col_avu = 530 # Alinhado para o texto terminar perto do 560
+    col_tam = 360  # Recuei 10pt
+    col_esq = 395  # Recuei 10pt
+    col_dir = 440  # Recuei 10pt
+    col_par = 485  # Recuei 10pt
+    col_avu = 520  # Recuei 10pt para o texto "X Esq." caber antes do 560
 
     p.drawString(col_mod, y, "Modelo")
     p.drawString(col_cor, y, "Cor")
@@ -223,7 +223,7 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
     p.drawString(col_par, y, "Pares")
     p.drawString(col_avu, y, "Avulsos")
     
-    p.line(40, y-5, 560, y-5) # Linha agora vai exatamente até a borda do retângulo
+    p.line(40, y-5, 560, y-5) 
     y -= 20
 
     # --- Listagem de Itens ---
@@ -241,13 +241,13 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
         p.drawString(col_mod, y, item.modelo.nome[:28]) 
         p.drawString(col_cor, y, item.cor.nome)         
         
-        # Alinhamento dos números (pequeno ajuste de +X para centralizar sob o título)
-        p.drawString(col_tam + 5, y, str(item.tamanho.numero))
-        p.drawString(col_esq + 12, y, str(item.quantidade_pe_esquerdo))
-        p.drawString(col_dir + 12, y, str(item.quantidade_pe_direito))
+        # Alinhamento centralizado sob os títulos
+        p.drawString(col_tam + 2, y, str(item.tamanho.numero))
+        p.drawString(col_esq + 8, y, str(item.quantidade_pe_esquerdo))
+        p.drawString(col_dir + 8, y, str(item.quantidade_pe_direito))
         
         p.setFont("Helvetica-Bold", 8.5)
-        p.drawString(col_par + 8, y, str(pares))
+        p.drawString(col_par + 5, y, str(pares))
         p.setFont("Helvetica", 8.5)
 
         if sobra_esq > 0:
