@@ -167,97 +167,86 @@ def gerar_relatorio(request, ficha_id):
     
     return response
 
+
 @login_required
 def gerar_relatorio_ficha_inventario(request, ficha_id):
     ficha = get_object_or_404(FichaInventario, id=ficha_id)
-    itens = ficha.itens.select_related("modelo", "tamanho")
+    itens = ficha.itens.select_related("modelo", "tamanho", "cor")
 
-    # --- Cálculos de Totais ---
     total_pares_geral = 0
     total_avulsos_geral = 0
 
     for item in itens:
         pares = min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
         total_pares_geral += pares
-        # A sobra de uma linha é a diferença absoluta entre os pés
         total_avulsos_geral += abs(item.quantidade_pe_direito - item.quantidade_pe_esquerdo)
 
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # --- Cabeçalho ---
+    # --- Cabeçalho e Totais ---
     p.setFont("Helvetica-Bold", 16)
     p.drawString(50, height - 50, "Relatório de Inventário de Calçados")
-
     p.setFont("Helvetica", 10)
     p.drawString(50, height - 75, f"Ficha: {ficha.id} | Nome: {ficha.nome_ficha}")
     p.drawString(50, height - 90, f"Data: {ficha.data.strftime('%d/%m/%Y')} | Operador: {ficha.operador.username}")
-
-    # --- Bloco de Totais Centralizado ---
-    # Desenhando o retângulo
     p.rect(50, height - 145, 500, 40) 
-    
     p.setFont("Helvetica-Bold", 12)
-    
-    # Texto de Pares (Verde)
     p.setFillColorRGB(0, 0.4, 0)
-    texto_pares = f"TOTAL DE PARES: {total_pares_geral}"
-    p.drawString(120, height - 130, texto_pares)
-    
-    # Texto de Avulsos (Vermelho) ao lado
+    p.drawString(120, height - 130, f"TOTAL DE PARES: {total_pares_geral}")
     p.setFillColorRGB(0.8, 0, 0)
-    texto_avulsos = f"TOTAL DE AVULSOS: {total_avulsos_geral}"
-    p.drawString(330, height - 130, texto_avulsos)
-    
-    p.setFillColorRGB(0, 0, 0) # Reset para preto
+    p.drawString(330, height - 130, f"TOTAL DE AVULSOS: {total_avulsos_geral}")
+    p.setFillColorRGB(0, 0, 0)
 
-    # --- Cabeçalho da Tabela ---
+    # --- Cabeçalho da Tabela (Ordem: Esq | Dir) ---
     y = height - 170
     p.setFont("Helvetica-Bold", 10)
     p.drawString(50, y, "Modelo")
-    p.drawString(250, y, "Tam.")
-    p.drawString(300, y, "Pé Dir.")
-    p.drawString(360, y, "Pé Esq.")
-    p.drawString(420, y, "Pares")
-    p.drawString(480, y, "Avulsos")
+    p.drawString(180, y, "Cor")
+    p.drawString(275, y, "Tam.")
+    p.drawString(315, y, "Pé Esq.")  # Invertido para a esquerda
+    p.drawString(375, y, "Pé Dir.")  # Invertido para a direita
+    p.drawString(435, y, "Pares")
+    p.drawString(495, y, "Avulsos")
     
     p.line(50, y-5, 550, y-5)
     y -= 20
 
     # --- Listagem de Itens ---
-    p.setFont("Helvetica", 10)
+    p.setFont("Helvetica", 9)
     for item in itens:
         if y < 50:
             p.showPage()
             y = height - 50
-            p.setFont("Helvetica", 10)
+            p.setFont("Helvetica", 9)
 
         pares = min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
         sobra_esq = item.quantidade_pe_esquerdo - pares
         sobra_dir = item.quantidade_pe_direito - pares
 
-        p.drawString(50, y, item.modelo.nome[:35])
-        p.drawString(255, y, str(item.tamanho.numero))
-        p.drawString(305, y, str(item.quantidade_pe_direito))
-        p.drawString(365, y, str(item.quantidade_pe_esquerdo))
+        p.drawString(50, y, item.modelo.nome[:25])
+        p.drawString(180, y, item.cor.nome[:18])
+        p.drawString(280, y, str(item.tamanho.numero))
         
-        # Coluna Pares
-        p.setFont("Helvetica-Bold", 10)
-        p.drawString(425, y, str(pares))
-        p.setFont("Helvetica", 10)
+        # Valores invertidos conforme seu pedido:
+        p.drawString(325, y, str(item.quantidade_pe_esquerdo)) # Esquerdo primeiro
+        p.drawString(385, y, str(item.quantidade_pe_direito))  # Direito depois
+        
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(440, y, str(pares))
+        p.setFont("Helvetica", 9)
 
-        # Coluna Avulsos
         if sobra_esq > 0:
             p.setFillColorRGB(0.8, 0, 0)
-            p.drawString(480, y, f"{sobra_esq} Esq.")
+            p.drawString(495, y, f"{sobra_esq} Esq.")
             p.setFillColorRGB(0, 0, 0)
         elif sobra_dir > 0:
             p.setFillColorRGB(0.8, 0, 0)
-            p.drawString(480, y, f"{sobra_dir} Dir.")
+            p.drawString(495, y, f"{sobra_dir} Dir.")
             p.setFillColorRGB(0, 0, 0)
         else:
-            p.drawString(480, y, "-")
+            p.drawString(495, y, "-")
 
         y -= 18
 
@@ -266,6 +255,7 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
     response = HttpResponse(buffer, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="ficha_{ficha.id}.pdf"'
     return response
+
 
 
 @login_required

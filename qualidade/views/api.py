@@ -178,7 +178,7 @@ def api_atualizar_item(request, item_id):
 def get_cores(request, id_modelo):
     modelo = get_object_or_404(ModeloCalcado, id=id_modelo, excluido=False)
     
-    cores = modelo.cores.filter(excluido=False)
+    cores = modelo.cores.filter(excluido=False).order_by('nome')
 
     data = [
         {"id": cor.id, "nome": cor.nome}
