@@ -171,6 +171,7 @@ def gerar_relatorio(request, ficha_id):
 @login_required
 def gerar_relatorio_ficha_inventario(request, ficha_id):
     ficha = get_object_or_404(FichaInventario, id=ficha_id)
+    # select_related para carregar modelo, tamanho e cor de uma vez só
     itens = ficha.itens.select_related("modelo", "tamanho", "cor")
 
     total_pares_geral = 0
@@ -185,70 +186,84 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # --- Cabeçalho e Totais ---
+    # --- Cabeçalho ---
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, height - 50, "Relatório de Inventário de Calçados")
+    p.drawString(40, height - 50, "Relatório de Inventário de Calçados")
+
     p.setFont("Helvetica", 10)
-    p.drawString(50, height - 75, f"Ficha: {ficha.id} | Nome: {ficha.nome_ficha}")
-    p.drawString(50, height - 90, f"Data: {ficha.data.strftime('%d/%m/%Y')} | Operador: {ficha.operador.username}")
-    p.rect(50, height - 145, 500, 40) 
+    p.drawString(40, height - 75, f"Ficha: {ficha.id} | Nome: {ficha.nome_ficha}")
+    p.drawString(40, height - 90, f"Data: {ficha.data.strftime('%d/%m/%Y')} | Operador: {ficha.operador.username}")
+
+    # --- Bloco de Totais ---
+    p.rect(40, height - 145, 520, 40) 
     p.setFont("Helvetica-Bold", 12)
     p.setFillColorRGB(0, 0.4, 0)
-    p.drawString(120, height - 130, f"TOTAL DE PARES: {total_pares_geral}")
+    p.drawString(100, height - 130, f"TOTAL DE PARES: {total_pares_geral}")
     p.setFillColorRGB(0.8, 0, 0)
     p.drawString(330, height - 130, f"TOTAL DE AVULSOS: {total_avulsos_geral}")
     p.setFillColorRGB(0, 0, 0)
 
-    # --- Cabeçalho da Tabela (Ordem: Esq | Dir) ---
+    # --- Cabeçalho da Tabela (Novas Coordenadas para dar espaço à Cor) ---
     y = height - 170
-    p.setFont("Helvetica-Bold", 10)
-    p.drawString(50, y, "Modelo")
-    p.drawString(180, y, "Cor")
-    p.drawString(275, y, "Tam.")
-    p.drawString(315, y, "Pé Esq.")  # Invertido para a esquerda
-    p.drawString(375, y, "Pé Dir.")  # Invertido para a direita
-    p.drawString(435, y, "Pares")
-    p.drawString(495, y, "Avulsos")
+    p.setFont("Helvetica-Bold", 9)
     
-    p.line(50, y-5, 550, y-5)
+    col_mod = 40
+    col_cor = 165  # Modelo tem 125pt de espaço
+    col_tam = 360  # Cor tem quase 200pt de espaço agora
+    col_esq = 395
+    col_dir = 445
+    col_par = 490
+    col_avu = 530
+
+    p.drawString(col_mod, y, "Modelo")
+    p.drawString(col_cor, y, "Cor")
+    p.drawString(col_tam, y, "Tam.")
+    p.drawString(col_esq, y, "Pé Esq.")
+    p.drawString(col_dir, y, "Pé Dir.")
+    p.drawString(col_par, y, "Pares")
+    p.drawString(col_avu, y, "Avulsos")
+    
+    p.line(40, y-5, 575, y-5)
     y -= 20
 
     # --- Listagem de Itens ---
-    p.setFont("Helvetica", 9)
+    p.setFont("Helvetica", 8.5) # Fonte levemente menor para garantir que nomes longos caibam
     for item in itens:
         if y < 50:
             p.showPage()
             y = height - 50
-            p.setFont("Helvetica", 9)
+            p.setFont("Helvetica", 8.5)
 
         pares = min(item.quantidade_pe_direito, item.quantidade_pe_esquerdo)
         sobra_esq = item.quantidade_pe_esquerdo - pares
         sobra_dir = item.quantidade_pe_direito - pares
 
-        p.drawString(50, y, item.modelo.nome[:25])
-        p.drawString(180, y, item.cor.nome[:18])
-        p.drawString(280, y, str(item.tamanho.numero))
+        # Nomes sem corte (usando o espaço ampliado)
+        p.drawString(col_mod, y, item.modelo.nome[:30]) # Limite generoso para o modelo
+        p.drawString(col_cor, y, item.cor.nome)         # Cor sem limite definido (vai usar o espaço livre)
         
-        # Valores invertidos conforme seu pedido:
-        p.drawString(325, y, str(item.quantidade_pe_esquerdo)) # Esquerdo primeiro
-        p.drawString(385, y, str(item.quantidade_pe_direito))  # Direito depois
+        # Colunas Numéricas
+        p.drawString(col_tam + 5, y, str(item.tamanho.numero))
+        p.drawString(col_esq + 10, y, str(item.quantidade_pe_esquerdo))
+        p.drawString(col_dir + 10, y, str(item.quantidade_pe_direito))
         
-        p.setFont("Helvetica-Bold", 9)
-        p.drawString(440, y, str(pares))
-        p.setFont("Helvetica", 9)
+        p.setFont("Helvetica-Bold", 8.5)
+        p.drawString(col_par + 5, y, str(pares))
+        p.setFont("Helvetica", 8.5)
 
+        # Coluna Avulsos com cor dinâmica
         if sobra_esq > 0:
             p.setFillColorRGB(0.8, 0, 0)
-            p.drawString(495, y, f"{sobra_esq} Esq.")
+            p.drawString(col_avu, y, f"{sobra_esq} Esq.")
             p.setFillColorRGB(0, 0, 0)
         elif sobra_dir > 0:
             p.setFillColorRGB(0.8, 0, 0)
-            p.drawString(495, y, f"{sobra_dir} Dir.")
+            p.drawString(col_avu, y, f"{sobra_dir} Dir.")
             p.setFillColorRGB(0, 0, 0)
         else:
-            p.drawString(495, y, "-")
+            p.drawString(col_avu, y, "-")
 
-        y -= 18
+        y -= 16 # Espaçamento entre linhas um pouco mais denso
 
     p.save()
     buffer.seek(0)
