@@ -880,15 +880,13 @@
                                         {% csrf_token %}
                                         <input type="hidden" name="acao" value="adicionar">
                                         <input type="hidden" name="lado" value="PE">
-                                        <button type="submit" class="btn-add" title="Adicionar Pé Esquerdo">
-                                            ➕
-                                        </button>
-                                        <input type="number"
-                                            name="valor"
-                                            class="quantity-input"
-                                            placeholder="Qtd"
-                                            min="1"
-                                            value="1">
+                                        
+                                        <input type="hidden" name="f_modelo" value="{{ modelo_selecionado|default:'' }}">
+                                        <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
+                                        <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
+                                        
+                                        <button type="submit" class="btn-add">➕</button>
+                                        <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
                                     <span class="separator">/</span>
@@ -898,15 +896,13 @@
                                         {% csrf_token %}
                                         <input type="hidden" name="acao" value="subtrair">
                                         <input type="hidden" name="lado" value="PE">
-                                        <button type="submit" class="btn-remove" title="Remover Pé Esquerdo">
-                                            ➖
-                                        </button>
-                                        <input type="number"
-                                            name="valor"
-                                            class="quantity-input"
-                                            placeholder="Qtd"
-                                            min="1"
-                                            value="1">
+                                        
+                                        <input type="hidden" name="f_modelo" value="{{ modelo_selecionado|default:'' }}">
+                                        <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
+                                        <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
+                                        
+                                        <button type="submit" class="btn-add">➖</button>
+                                        <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
                                     <span class="separator">/</span>
@@ -930,15 +926,13 @@
                                         {% csrf_token %}
                                         <input type="hidden" name="acao" value="adicionar">
                                         <input type="hidden" name="lado" value="PD">
-                                        <button type="submit" class="btn-add" title="Adicionar Pé Direito">
-                                            ➕
-                                        </button>
-                                        <input type="number"
-                                            name="valor"
-                                            class="quantity-input"
-                                            placeholder="Qtd"
-                                            min="1"
-                                            value="1">
+                                        
+                                        <input type="hidden" name="f_modelo" value="{{ modelo_selecionado|default:'' }}">
+                                        <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
+                                        <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
+                                        
+                                        <button type="submit" class="btn-add">➕</button>
+                                        <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
                                     <span class="separator">/</span>
@@ -948,15 +942,13 @@
                                         {% csrf_token %}
                                         <input type="hidden" name="acao" value="subtrair">
                                         <input type="hidden" name="lado" value="PD">
-                                        <button type="submit" class="btn-remove" title="Remover Pé Direito">
-                                            ➖
-                                        </button>
-                                        <input type="number"
-                                            name="valor"
-                                            class="quantity-input"
-                                            placeholder="Qtd"
-                                            min="1"
-                                            value="1">
+                                        
+                                        <input type="hidden" name="f_modelo" value="{{ modelo_selecionado|default:'' }}">
+                                        <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
+                                        <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
+                                        
+                                        <button type="submit" class="btn-add">➖</button>
+                                        <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
                                     <span class="separator">/</span>

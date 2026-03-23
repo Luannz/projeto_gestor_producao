@@ -11,6 +11,7 @@ from datetime import date
 from django.db import models
 from django.core.paginator import Paginator
 from django.db.models import F
+from django.urls import reverse
 
 
 from ..models import (
@@ -306,8 +307,24 @@ def atualizar_quantidade_item(request, item_id):
 
     item.save()
 
+    # 1. Captura os filtros que vieram do formulário
+    f_modelo = request.POST.get("f_modelo", "")
+    f_cor = request.POST.get("f_cor", "")
+    f_numero = request.POST.get("f_numero", "")
+
+    # 2. Monta a URL de retorno com os parâmetros
+    url = reverse("editar_ficha_inventario", kwargs={"ficha_id": item.ficha.id})
+    
+    query_params = []
+    if f_modelo: query_params.append(f"modelo={f_modelo}")
+    if f_cor: query_params.append(f"cor={f_cor}")
+    if f_numero: query_params.append(f"numero={f_numero}")
+    
+    if query_params:
+        url = f"{url}?{'&'.join(query_params)}"
+
     messages.success(request, mensagem)
-    return redirect("editar_ficha_inventario", ficha_id=item.ficha.id)
+    return redirect(url)
 
 
 ## VIEWS DE GERENCIAMENTO SÓ PRA QUALIDADE ##
