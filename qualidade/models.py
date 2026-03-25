@@ -237,4 +237,50 @@ class ItemInventario(models.Model):
     def __str__(self):
         return f"{self.modelo.nome} - {self.cor.nome} - Nº{self.tamanho.numero} - {self.quantidade} pares"
     
+    @property
+    def total_pares(self):
+        """Retorna a quantidade de pares formados (o mínimo entre os dois lados)"""
+        return min(self.quantidade_pe_direito, self.quantidade_pe_esquerdo)
+
+    @property
+    def total_pes(self):
+        """Retorna o total de pés individuais (caso precise para inventário bruto)"""
+        return self.quantidade_pe_direito + self.quantidade_pe_esquerdo
     
+    @property
+    def pes_avulsos(self):
+        """Retorna a diferença (sobra) de pés entre os lados"""
+        return abs(self.quantidade_pe_direito - self.quantidade_pe_esquerdo)
+
+    @property
+    def tem_sobra(self):
+        """Verifica se existe desfalque de pares"""
+        return self.quantidade_pe_direito != self.quantidade_pe_esquerdo
+    @property
+    def lado_sobrando(self):
+        """Identifica qual pé está em maior quantidade"""
+        if self.quantidade_pe_direito > self.quantidade_pe_esquerdo:
+            return "Direito"
+        elif self.quantidade_pe_esquerdo > self.quantidade_pe_direito:
+            return "Esquerdo"
+        return None
+    
+
+class LogMovimentacaoV2(models.Model):
+    ACOES = (('adicionar', 'Adicionado'), ('subtrair', 'Removido'))
+    LADOS = (('PD', 'Pé Direito'), ('PE', 'Pé Esquerdo'))
+
+    item = models.ForeignKey(ItemInventario, on_delete=models.SET_NULL, null=True, related_name='logs')
+    ficha = models.ForeignKey(FichaInventario, on_delete=models.CASCADE, related_name='movimentacoes', null=True)
+    
+    identificacao_item = models.CharField(max_length=255, blank=True, null=True)
+
+    operador = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
+    acao = models.CharField(max_length=10, choices=ACOES)
+    lado = models.CharField(max_length=2, choices=LADOS)
+    quantidade_movimentada = models.IntegerField()
+    saldo_momento = models.IntegerField(help_text="Saldo total do item após a ação")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-criado_em']   
