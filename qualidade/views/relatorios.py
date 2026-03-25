@@ -8,12 +8,13 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.db.models import Sum
-from datetime import datetime
+from datetime import datetime, timedelta
+from django.utils import timezone 
 from io import BytesIO
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 
-from ..models import Ficha, ParteCalcado, FichaInventario
+from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2
 
 
 @login_required
@@ -495,3 +496,26 @@ def gerar_relatorio_periodo(request):
     
     response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
     return response
+
+
+@login_required
+def historico_inventario(request, ficha_id):
+    ficha = get_object_or_404(FichaInventario, id=ficha_id)
+    uma_semana_atras = timezone.now() - timedelta(days=7)
+
+    # FILTRO ALTERADO: Buscamos pela FICHA direto
+    movimentacoes = LogMovimentacaoV2.objects.filter(
+        ficha=ficha, 
+        criado_em__gte=uma_semana_atras 
+    ).select_related(
+        'item', 
+        'item__modelo', 
+        'item__cor', 
+        'item__tamanho', 
+        'operador'
+    ).order_by('-criado_em')
+
+    return render(request, 'qualidade/relatorio_inventario.html', {
+        'ficha': ficha,
+        'movimentacoes': movimentacoes,
+    })

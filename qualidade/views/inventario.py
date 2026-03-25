@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from ..models import (
     FichaInventario, ItemInventario, ModeloCalcado, 
-    Cor, TamanhoModelo
+    Cor, TamanhoModelo , LogMovimentacaoV2
 )
 
 
@@ -105,7 +105,7 @@ def editar_ficha_inventario(request, ficha_id):
         cor = get_object_or_404(Cor, id=cor_id)
         tamanho = get_object_or_404(TamanhoModelo, id=tamanho_id)
 
-        ItemInventario.objects.create(
+        item = ItemInventario.objects.create(
             ficha=ficha,
             modelo=modelo,
             cor=cor,
@@ -113,6 +113,31 @@ def editar_ficha_inventario(request, ficha_id):
             quantidade_pe_direito=quantidade_pe_direito,
             quantidade_pe_esquerdo=quantidade_pe_esquerdo,
         )
+
+        # REGISTRO NO HISTÓRICO
+        # Registra a entrada do Pé Direito
+        if quantidade_pe_direito > 0:
+            LogMovimentacaoV2.objects.create(
+                ficha=item.ficha,
+                item=item,
+                operador=request.user,
+                acao='adicionar',
+                lado='PD',
+                quantidade_movimentada=quantidade_pe_direito,
+                saldo_momento=quantidade_pe_direito # Saldo inicial
+            )
+        
+        # Registra a entrada do Pé Esquerdo
+        if quantidade_pe_esquerdo > 0:
+            LogMovimentacaoV2.objects.create(
+                ficha=item.ficha,
+                item=item,
+                operador=request.user,
+                acao='adicionar',
+                lado='PE',
+                quantidade_movimentada=quantidade_pe_esquerdo,
+                saldo_momento=quantidade_pe_esquerdo # Saldo inicial
+            )
 
         messages.success(
             request,
@@ -222,22 +247,56 @@ def editar_ficha_inventario(request, ficha_id):
 
     return render(request, "qualidade/editar_ficha_inventario.html", context)
 
+
 @login_required
 def remover_item_inventario(request, item_id):
-    # Só aceita POST (sem require_post)
     if request.method != "POST":
         return redirect("home")
 
+    # 1. Tenta pegar o item. Se der 404 aqui, é porque ele já foi removido (seu erro atual)
     item = get_object_or_404(ItemInventario, id=item_id)
+    ficha_id = item.ficha.id
 
     # Permissão
     if request.user.perfil.tipo != "operador":
         messages.error(request, "Você não tem permissão para excluir itens.")
-        return redirect("editar_ficha_inventario", ficha_id=item.ficha.id)
+        return redirect("editar_ficha_inventario", ficha_id=ficha_id)
 
-    item.delete()
-    messages.success(request, "Item removido com sucesso!")
-    return redirect("editar_ficha_inventario", ficha_id=item.ficha.id)
+    # 2. Prepara a descrição ANTES de deletar
+    info_item = f"{item.modelo.nome} - {item.cor.nome} (Nº {item.tamanho.numero})"
+    qtd_pd = item.quantidade_pe_direito
+    qtd_pe = item.quantidade_pe_esquerdo
+
+    # 3. Cria os Logs (Eles vão sobreviver ao delete pelo SET_NULL)
+    if qtd_pd > 0:
+        LogMovimentacaoV2.objects.create(
+            ficha=item.ficha,
+            item=item,
+            identificacao_item=info_item,
+            operador=request.user,
+            acao='subtrair',
+            lado='PD',
+            quantidade_movimentada=qtd_pd,
+            saldo_momento=0
+        )
+    
+    if qtd_pe > 0:
+        LogMovimentacaoV2.objects.create(
+            ficha=item.ficha,
+            item=item,
+            identificacao_item=info_item,
+            operador=request.user,
+            acao='subtrair',
+            lado='PE',
+            quantidade_movimentada=qtd_pe,
+            saldo_momento=0
+        )
+
+    # 4. DELEÇÃO SEGURA: Usamos o QuerySet para evitar o erro de 'id is None'
+    ItemInventario.objects.filter(id=item_id).delete()
+
+    messages.success(request, f"Item {info_item} removido com sucesso!")
+    return redirect("editar_ficha_inventario", ficha_id=ficha_id)
 
 @login_required
 def atualizar_quantidade_item(request, item_id):
@@ -322,6 +381,18 @@ def atualizar_quantidade_item(request, item_id):
     
     if query_params:
         url = f"{url}?{'&'.join(query_params)}"
+
+    item.refresh_from_db() 
+
+    LogMovimentacaoV2.objects.create(
+        ficha=item.ficha,
+        item=item,
+        operador=request.user,
+        acao=acao, # 'adicionar' ou 'subtrair'
+        lado=lado, # 'PE' ou 'PD'
+        quantidade_movimentada=valor,
+        saldo_momento=item.quantidade_pe_esquerdo + item.quantidade_pe_direito
+    )
 
     messages.success(request, mensagem)
     return redirect(url)

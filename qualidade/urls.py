@@ -33,6 +33,7 @@ urlpatterns = [
     path("inventario/item/<int:item_id>/remover/", views.remover_item_inventario, name="remover_item_inventario"),
     path("inventario/item/<int:item_id>/atualizar/", views.atualizar_quantidade_item, name="atualizar_quantidade_item"),
     path("inventario/<int:ficha_id>/relatorio/",views.gerar_relatorio_ficha_inventario,name="gerar_relatorio_ficha_inventario",),
+    path("inventario/<int:ficha_id>/historico/",views.historico_inventario,name="relatorio_inventario"),
     # APIs para inventário
     path('api/get_cores/<int:id_modelo>/', views.get_cores, name='api_cores'),
     path('api/get_tamanhos/<int:id_cor>/', views.get_tamanhos, name='api_tamanhos'),

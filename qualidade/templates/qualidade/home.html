@@ -273,8 +273,9 @@
                 <a href="{% url 'visualizar_ficha' ficha.id %}" class="btn btn-secondary btn-small">👁️ Ver</a>
                 
                 {% if perfil.tipo == 'qualidade' %}
+                <a href="{% url 'relatorio_inventario' ficha.id %}" class="btn btn-secondary btn-small">📋</a>
                 <a href="{% url 'gerar_relatorio' ficha.id %}" class="btn btn-success btn-small">📄 PDF</a>
-                
+    
                 <form method="post" action="{% url 'excluir_ficha' ficha.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja mover esta ficha para a lixeira?');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-small">🗑️</button>
