@@ -13,6 +13,7 @@ from django.utils import timezone
 from io import BytesIO
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
+from django.core.paginator import Paginator
 
 from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2
 
@@ -501,21 +502,46 @@ def gerar_relatorio_periodo(request):
 @login_required
 def historico_inventario(request, ficha_id):
     ficha = get_object_or_404(FichaInventario, id=ficha_id)
-    uma_semana_atras = timezone.now() - timedelta(days=7)
+    
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    tipo_acao = request.GET.get('acao') # adicionar, subtrair ou excluido
 
-    # FILTRO ALTERADO: Buscamos pela FICHA direto
-    movimentacoes = LogMovimentacaoV2.objects.filter(
-        ficha=ficha, 
-        criado_em__gte=uma_semana_atras 
-    ).select_related(
-        'item', 
-        'item__modelo', 
-        'item__cor', 
-        'item__tamanho', 
-        'operador'
+    movimentacoes = LogMovimentacaoV2.objects.filter(ficha=ficha)
+
+    #filtro da data
+    if data_inicio and data_fim:
+        movimentacoes = movimentacoes.filter(
+            criado_em__date__gte=data_inicio,
+            criado_em__date__lte=data_fim
+        )
+    else:
+        # se não tiver filtro, mantém o padrao de 7 dias
+        hoje = timezone.now().date()
+        uma_semana_atras = hoje - timedelta(days=7)
+        movimentacoes = movimentacoes.filter(criado_em__date__gte=uma_semana_atras)
+
+    # agora o filtro de açao
+    if tipo_acao:
+        if tipo_acao == 'excluido':
+            # Itens que foram apagados da ficha (o item_id no log virou NULL)
+            movimentacoes = movimentacoes.filter(item__isnull=True)
+        else:
+            # Filtra exatamente pela string 'adicionar' ou 'subtrair'
+            movimentacoes = movimentacoes.filter(acao=tipo_acao)
+
+    movimentacoes = movimentacoes.select_related(
+        'item', 'item__modelo', 'item__cor', 'item__tamanho', 'operador'
     ).order_by('-criado_em')
+
+    paginator = Paginator(movimentacoes, 20)  # 20 movimentações por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'qualidade/relatorio_inventario.html', {
         'ficha': ficha,
-        'movimentacoes': movimentacoes,
+        'movimentacoes': page_obj,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'acao_selecionada': tipo_acao,
     })

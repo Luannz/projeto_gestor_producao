@@ -162,18 +162,166 @@
         padding: 60px 20px;
         color: #6b7280;
     }
+
+    /* ========== FILTROS ========== */
+    .filtros-wrapper {
+        background: #f3f4f6;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .filtros-wrapper .form-select {
+        display: inline-block;
+        width: auto;
+        min-width: 150px;
+        padding: 10px 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+        transition: border-color 0.2s ease;
+    }
+
+    .filtros-wrapper .form-select:focus {
+        outline: none;
+        border-color: #b1ad7eff;
+    }
+
+    .filtros-wrapper .btn {
+        white-space: nowrap;
+    }
     
+    /* ========== PAGINAÇÃO ========== */
+    .paginacao-wrapper {
+        padding: 20px;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .pagination .page-item {
+        display: inline-block;
+    }
+
+    .pagination .page-link {
+        display: inline-block;
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        background: white;
+        color: #b1ad7eff;
+        border: 2px solid #e5e7eb;
+    }
+
+    .pagination .page-item:not(.disabled):not(.active) .page-link:hover {
+        background: linear-gradient(135deg, #b1ad7eff 0%, #686b37ff 100%);
+        color: white;
+        border-color: #b1ad7eff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(177, 173, 126, 0.3);
+    }
+
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #b1ad7eff 0%, #686b37ff 100%);
+        color: white;
+        border: 2px solid transparent;
+        font-weight: 600;
+        cursor: default;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        background: #f3f4f6;
+        color: #9ca3af;
+        border: 2px solid #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
     @media (max-width: 768px) {
         .filtros-grid {
             grid-template-columns: 1fr;
         }
     }
 </style>
-<h3 style="margin-bottom: 20px;">🕒 Histórico de Ações (Últimos 7 dias)</h3>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+    <div>
+        <h3 style="margin-bottom: 5px;">
+            🕒 Histórico de Ações 
+            <span style="color: #6b7280;">- {{ ficha.nome_ficha }}</span>
+        </h3>
+        <p style="opacity: 0.6; font-size: 13px; margin: 0; font-style: italic;">
+            {% if data_inicio %}
+                Mostrando resultados filtrados.
+            {% else %}
+                Exibindo registros dos últimos 7 dias por padrão.
+            {% endif %}
+        </p>
+    </div>
+    
+    <a href="{% url 'home' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 8px; text-decoration: none;">
+        <span style="font-size: 18px;">←</span> Voltar 
+    </a>
+</div>
 
-<a href="{% url 'home' %}" class="btn btn-secondary" style="margin-bottom: 25px; display: inline-block;">
-    ← Voltar
-</a>
+<div class="filtros-wrapper">
+    <form method="GET" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; width: 100%;">
+        
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 12px; font-weight: bold; color: #4b5563;">📅 Início:</label>
+            <input type="date" 
+                   name="data_inicio" 
+                   value="{{ data_inicio }}" 
+                   class="form-select"> </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 12px; font-weight: bold; color: #4b5563;">📅 Fim:</label>
+            <input type="date" 
+                   name="data_fim" 
+                   value="{{ data_fim }}" 
+                   class="form-select"> </div>
+
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 12px; font-weight: bold; color: #4b5563;">Tipo de Ação:</label>
+            <select name="acao" class="form-select"> <option value="">Todas as Ações</option>
+                <option value="adicionar" {% if acao_selecionada == 'adicionar' %}selected{% endif %}>➕ Adições</option>
+                <option value="subtrair" {% if acao_selecionada == 'subtrair' %}selected{% endif %}>➖ Remoções</option>
+                <option value="excluido" {% if acao_selecionada == 'excluido' %}selected{% endif %}>🗑️ Itens Excluídos</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">
+                Filtrar
+            </button>
+            
+            <a href="{% url 'relatorio_inventario' ficha.id %}" 
+               class="btn btn-light" 
+               style="padding: 10px 15px; border-radius: 8px; font-size: 14px; text-decoration: none; color: #6b7280; border: 1px solid #e5e7eb;">
+               Limpar
+            </a>
+        </div>
+
+    </form>
+</div>
 
 <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden;">
     <table class="table" style="width: 100%;">
@@ -235,5 +383,48 @@
                 {% endfor %}
         </tbody>
     </table>
+</div>
+<div class="paginacao-wrapper">
+    <ul class="pagination">
+        
+        <li class="page-item {% if not movimentacoes.has_previous %}disabled{% endif %}">
+            <a class="page-link" href="?page=1{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if acao_selecionada %}&acao={{ acao_selecionada }}{% endif %}">
+                « Primeira
+            </a>
+        </li>
+
+        <li class="page-item {% if not movimentacoes.has_previous %}disabled{% endif %}">
+            {% if movimentacoes.has_previous %}
+                <a class="page-link" href="?page={{ movimentacoes.previous_page_number }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if acao_selecionada %}&acao={{ acao_selecionada }}{% endif %}">
+                    Anterior
+                </a>
+            {% else %}
+                <span class="page-link">Anterior</span>
+            {% endif %}
+        </li>
+
+        <li class="page-item active">
+            <span class="page-link">
+                Página {{ movimentacoes.number }} de {{ movimentacoes.paginator.num_pages }}
+            </span>
+        </li>
+
+        <li class="page-item {% if not movimentacoes.has_next %}disabled{% endif %}">
+            {% if movimentacoes.has_next %}
+                <a class="page-link" href="?page={{ movimentacoes.next_page_number }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if acao_selecionada %}&acao={{ acao_selecionada }}{% endif %}">
+                    Próxima
+                </a>
+            {% else %}
+                <span class="page-link">Próxima</span>
+            {% endif %}
+        </li>
+
+        <li class="page-item {% if not movimentacoes.has_next %}disabled{% endif %}">
+            <a class="page-link" href="?page={{ movimentacoes.paginator.num_pages }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}{% if acao_selecionada %}&acao={{ acao_selecionada }}{% endif %}">
+                Última »
+            </a>
+        </li>
+
+    </ul>
 </div>
 {% endblock %}
