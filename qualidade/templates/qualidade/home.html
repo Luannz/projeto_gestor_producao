@@ -189,6 +189,20 @@
         border-color: #dc2626;
         color: #dc2626;
     }
+
+    .balanco-card {
+        border-left: 6px solid #b1ad7e !important;
+        border-right: 2px solid #e5e7eb !important;
+        border-top: 2px solid #e5e7eb !important;
+        border-bottom: 2px solid #e5e7eb !important;
+    }
+
+    .balanco-card:hover {
+        transform: none !important;
+        box-shadow: none !important;
+        border-left: 6px solid #b1ad7e !important; /* Força a cor verde */        
+        cursor: default !important;
+    }
 </style>
 
 {% if perfil.tipo == 'qualidade' %}
@@ -241,11 +255,13 @@
         </form>
     </div>
 </div>
+
 <div id="secao-producao">
     {% if fichas %}
     <hr style="margin: 40px 0;">
 
-    <h2 style="font-size: 22px; margin-bottom: 15px; color:#111827;">
+    <h2 style="font-size: 22px; margin-bottom: 15px; color:#111827; display: flex; align-items: center; gap: 10px;">
+        <span style="width: 4px; height: 20px; background: #667eea; border-radius: 2px;"></span>
         Fichas de Produção
     </h2>
     <div class="fichas-grid">
@@ -274,7 +290,7 @@
                 
                 {% if perfil.tipo == 'qualidade' %}
                 <a href="{% url 'gerar_relatorio' ficha.id %}" class="btn btn-success btn-small">📄 PDF</a>
-    
+                
                 <form method="post" action="{% url 'excluir_ficha' ficha.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja mover esta ficha para a lixeira?');">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-small">🗑️</button>
@@ -307,11 +323,53 @@
     {% endif %}
 </div>
 
+
 <div id="secao-inventario">
     {% if fichas_inventario %}
-    <hr style="margin: 40px 0;">
+    <hr style="margin: 40px 0; border: 0; border-top: 1px solid #e5e7eb;">
+    
+    <div class="ficha-card balanco-card" style="margin-bottom: 30px; padding: 20px 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <h3 class="ficha-title" style="margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+                    📦 Balanço Geral do Inventário
+                </h3>
+                <p class="ficha-info" style="margin-bottom: 0;">
+                    Soma total de todas as fichas de inventário visíveis
+                </p>
+            </div>
+            
+            <div style="background: rgba(22, 101, 52, 0.03); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(22, 101, 52, 0.08); text-align: center; min-width: 130px; flex: 1;">
+                <span style="display: block; font-size: 28px; font-weight: 800; color: rgba(22, 101, 52, 0.85); line-height: 1;">
+                    {{ total_pares_geral }}
+                </span>
+                <span style="font-size: 10px; font-weight: 700; color: rgba(22, 101, 52, 0.5); text-transform: uppercase; letter-spacing: 0.05em;">
+                    Pares Formados
+                </span>
+            </div>
 
-    <h2 style="font-size: 22px; margin-bottom: 15px; color:#111827;">
+            <div style="background: rgba(153, 27, 27, 0.03); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(153, 27, 27, 0.08); text-align: center; min-width: 130px; flex: 1;">
+                <span style="display: block; font-size: 28px; font-weight: 800; color: rgba(153, 27, 27, 0.85); line-height: 1;">
+                    {{ total_avulsos_geral }}
+                </span>
+                <span style="font-size: 10px; font-weight: 700; color: rgba(153, 27, 27, 0.5); text-transform: uppercase; letter-spacing: 0.05em;">
+                    Pés Avulsos
+                </span>
+            </div>
+
+            <div style="background: rgba(30, 41, 59, 0.03); padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(30, 41, 59, 0.08); text-align: center; min-width: 150px; flex: 1;">
+                <span style="display: block; font-size: 28px; font-weight: 900; color: rgba(30, 41, 59, 0.85); line-height: 1;">
+                    {{ total_pares_absoluto|floatformat:1 }}
+                </span>
+                <span style="font-size: 10px; font-weight: 700; color: rgba(30, 41, 59, 0.5); text-transform: uppercase; letter-spacing: 0.05em;">
+                    Volume Total
+                </span>
+            </div>
+        </div> 
+    </div>
+
+    <h2 style="font-size: 22px; margin-bottom: 15px; color:#111827; display: flex; align-items: center; gap: 10px;">
+        <span style="width: 4px; height: 20px; background: #b1ad7e; border-radius: 2px;"></span>
         Fichas de Inventário
     </h2>
 
@@ -336,7 +394,7 @@
                 {% endif %}
                 <a href="{% url 'visualizar_ficha_inventario' ficha.id %}" class="btn btn-secondary btn-small">👁️ Ver</a>
                 {% if perfil.tipo == 'qualidade' %}
-                <a href="{% url 'relatorio_inventario' ficha.id %}" class="btn btn-secondary btn-small">📋</a>
+                <a href="{% url 'relatorio_inventario' ficha.id %}" class="btn btn-secondary btn-small">📄 </a>
                 <a href="{% url 'gerar_relatorio_ficha_inventario' ficha.id %}" class="btn btn-success btn-small">📄 PDF</a>
                 <form method="post" action="{% url 'excluir_ficha_inventario' ficha.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja mover esta ficha para a lixeira?');">
                     {% csrf_token %}

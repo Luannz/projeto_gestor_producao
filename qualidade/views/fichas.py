@@ -9,8 +9,9 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import date
+from django.db.models import Sum, F, Q
 
-from ..models import Ficha, ParteCalcado, NomeOperador, FichaInventario
+from ..models import Ficha, ParteCalcado, NomeOperador, FichaInventario, ItemInventario
 
 
 @login_required
@@ -66,10 +67,34 @@ def home(request):
         if fichas_inventario is not None:
             fichas_inventario = fichas_inventario.filter(data=data_filtro)
 
+
+    # --- CÁLCULO DO TOTAL GERAL ---
+    total_avulsos_geral = 0
+    total_pares_geral = 0
+    total_pares_absoluto = 0
+    
+    if fichas_inventario:
+        itens = ItemInventario.objects.filter(ficha__in=fichas_inventario)
+        # 1. Total de Pares Formados 
+        total_pares_geral = sum(item.total_pares for item in itens)
+
+        # 2. ttotal de pes Avulsos (soma das diferenças entre E e D em cada item)
+        # Se tem 10E e 8D, tem 2 avulsos. Se tem 5E e 10D, tem 5 avulsos.
+        total_avulsos_geral = sum(abs(item.quantidade_pe_esquerdo - item.quantidade_pe_direito) for item in itens)
+
+        # 3. O grande total (todos os pés físicos / 2)
+        # Isso conta quantos pares existem no total do inventario, mesmo que sejam pares avulsos
+        soma_todos_os_pes = sum((item.quantidade_pe_esquerdo + item.quantidade_pe_direito) for item in itens)
+        total_pares_absoluto = soma_todos_os_pes / 2
+
     context = {
         "perfil": perfil,
         "grupo_usuario": grupo_nome,
         "fichas": fichas,
+        "fichas_inventario": fichas_inventario,
+        "total_pares_geral": total_pares_geral,
+        "total_avulsos_geral": total_avulsos_geral,
+        "total_pares_absoluto": total_pares_absoluto,
         "fichas_inventario": fichas_inventario,
         "data_hoje": date.today(),
     }
@@ -148,7 +173,7 @@ def editar_ficha(request, ficha_id):
         return redirect('home')
     
     # Buscar todas as partes ativas E NÃO EXCLUÍDAS
-    partes_disponiveis = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('ordem', 'nome')
+    partes_disponiveis = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome' ,'ordem')
     
     # Buscar registros existentes desta ficha
     registros_existentes = ficha.registros.all().select_related('parte')
