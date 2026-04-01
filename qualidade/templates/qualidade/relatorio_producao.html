@@ -1,0 +1,428 @@
+{% extends 'qualidade/base.html' %}
+
+{% block header_title %}Relatórios{% endblock %}
+
+{% block content %}
+{% load qualidade_filters %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title {
+        font-size: 28px;
+        color: #111827;
+    }
+    
+    .filtros-card {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .filtros-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .form-group-filtro {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group-filtro label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    
+    .form-control-filtro {
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 16px;
+        background: white;
+    }
+    
+    .form-control-filtro:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn-filtrar {
+        background: #667eea;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.3s;
+    }
+    
+    .btn-filtrar:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+    }
+    
+    .resultado-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+    
+    .resultado-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .operador-section {
+        padding: 25px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .operador-section:last-child {
+        border-bottom: none;
+    }
+    
+    .operador-nome {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .ficha-nome {
+        font-weight: 700;
+        color: #374151;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .partes-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .partes-tabela th {
+        background: #f3f4f6;
+        padding: 12px 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .partes-tabela td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .partes-tabela tr:hover {
+        background: #f9fafb;
+    }
+    
+    .quantidade-valor {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 18px;
+    }
+    
+    .total-operador {
+        background: #e0e7ff;
+        font-weight: 700;
+        font-size: 16px;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    @media (max-width: 768px) {
+        .filtros-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+     .container-resumos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 25px;
+    }
+
+    .card-resumo-parte {
+        background: rgba(102, 126, 234, 0.05); /* cor baseada nesse roxo #667eea */
+        padding: 15px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(102, 126, 234, 0.15);
+        text-align: center;
+        min-width: 150px;
+        flex: 1;
+        transition: transform 0.2s;
+    }
+
+    .card-resumo-parte .valor {
+        display: block;
+        font-size: 28px;
+        font-weight: 800;
+        color: #5568d3; /* Um tom mais forte do seu azul */
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .card-resumo-parte .label {
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(102, 126, 234, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .paginacao-wrapper {
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        margin-top: 10px;
+    }
+
+    .paginacao-wrapper .pagination {
+        display: flex;
+        list-style: none;
+        gap: 5px;
+        padding: 0;
+        align-items: center;
+    }
+
+    .paginacao-wrapper .page-item .page-link {
+        padding: 8px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #4b5563;
+        font-weight: 600;
+        font-size: 14px;
+        background: white;
+        transition: all 0.2s;
+    }
+
+    
+    .paginacao-wrapper .page-item.active .page-link {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+
+  
+    .paginacao-wrapper .page-item:not(.active):not(.disabled) .page-link:hover {
+        background: #f3f4f6;
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    
+    .paginacao-wrapper .page-item.disabled .page-link {
+        color: #9ca3af;
+        background: #f9fafb;
+        cursor: not-allowed;
+        border-color: #f3f4f6;
+    }
+
+    .btn-limpar { background: #f3f4f6; color: #374151; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 16px; transition: all 0.3s; display: inline-block; }
+    .btn-limpar:hover { background: #e5e7eb; }
+    .total-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 8px; font-weight: 700; }
+    .footer-total { background: #f9fafb; padding: 20px 25px; border-top: 2px solid #e5e7eb; text-align: right; }
+</style>
+
+<div class="page-header">
+    <h1 class="page-title">📊 Relatório de Produção</h1>
+    
+    <a href="{% url 'home' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 8px; text-decoration: none;">
+        <span style="font-size: 18px;">←</span> Voltar 
+    </a>
+</div>
+
+<div class="filtros-card">
+    <form method="get" >
+        <div class="filtros-grid">
+            <div class="form-group-filtro">
+                <label>Data Início:</label>
+                <input type="date" name="data_inicio" class="form-control-filtro" value="{{ filtros.data_inicio }}" required>
+            </div>
+            <div class="form-group-filtro">
+                <label>Data Fim:</label>
+                <input type="date" name="data_fim" class="form-control-filtro" value="{{ filtros.data_fim }}" required>
+            </div>
+            <div class="form-group-filtro">
+                <label>Lançado por (Perfil)</label>
+                <select name="perfil_id" class="form-control-filtro">
+                    <option value="">Todos</option>
+                    {% for u in usuarios %}
+                    <option value="{{ u.id }}" {% if filtros.perfil_id == u.id|stringformat:"s" %}selected{% endif %}>
+                        {{ u.get_full_name|default:u.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group-filtro">
+                <label>Operador da Banca</label>
+                <select name="nome_ficha" class="form-control-filtro">
+                    <option value="">Todos</option>
+                    {% for nome in nomes_fichas %}
+                    <option value="{{ nome }}" {% if filtros.nome_ficha == nome %}selected{% endif %}>{{ nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group-filtro">
+                <label>Parte do Calçado</label>
+                <select name="parte_id" class="form-control-filtro">
+                    <option value="">Todas as Partes</option>
+                    {% for p in partes %}
+                    <option value="{{ p.id }}" {% if filtros.parte_id == p.id|stringformat:"s" %}selected{% endif %}>{{ p.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div style="text-align: right; margin-top: 10px;">
+            <a href="{% url 'relatorio_producao' %}" class="btn-limpar">Limpar Filtros</a>
+            <button type="submit" class="btn-filtrar">🔍 Gerar Relatório</button>
+        </div>
+    </form>
+</div>
+{% if totais_por_parte %}
+<div class="container-resumos">
+    {% for parte, total in totais_por_parte.items %}
+    <div class="card-resumo-parte">
+        <span class="valor">{{ total }}</span>
+        <span class="label">{{ parte }}</span>
+    </div>
+    {% endfor %}
+    
+    <div class="card-resumo-parte" style="background: rgba(118, 75, 162, 0.08); border-color: rgba(118, 75, 162, 0.2);">
+        <span class="valor" style="color: #764ba2;">{{ total_geral }}</span>
+        <span class="label" style="color: #764ba2;">Total Geral</span>
+    </div>
+</div>
+{% endif %}
+
+{% if page_obj %}
+<div style="display: flex; justify-content: flex-start; margin-bottom: 20px;">
+    <a href="{% url 'gerar_pdf_producao' %}?{{ request.GET.urlencode }}"class="btn btn-success btn-small">📄PDF do Relatório</a>
+</div>
+<div class="resultado-card">
+    <div class="resultado-header">
+        <span style="font-size: 18px; font-weight: 600;">Resultados da Busca</span>
+        <span class="total-badge">Total: {{ total_geral }}</span>
+    </div>
+    
+    <div style="overflow-x: auto;">
+        <table class="partes-tabela">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Perfil</th>
+                    <th>Operador (Ficha)</th>
+                    <th>Parte</th>
+                    <th style="text-align: right;">Quantidade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in page_obj %}
+                <tr>
+                    <td>{{ item.data|date:"d/m/Y" }}</td>
+                    <td>{{ item.perfil }}</td>
+                    <td><strong>{{ item.nome_ficha }}</strong></td>
+                    <td>{{ item.parte }}</td>
+                    <td style="text-align: right;">
+                        <span class="quantidade-valor">{{ item.quantidade }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="paginacao-wrapper">
+        <ul class="pagination">
+            
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="?{{ filtros.urlencode }}&page=1">
+                    « Primeira
+                </a>
+            </li>
+
+            <li class="page-item {% if not page_obj.has_previous %}disabled{% endif %}">
+                {% if page_obj.has_previous %}
+                    <a class="page-link" href="?{{ filtros.urlencode }}&page={{ page_obj.previous_page_number }}">
+                        Anterior
+                    </a>
+                {% else %}
+                    <span class="page-link">Anterior</span>
+                {% endif %}
+            </li>
+
+            <li class="page-item active">
+                <span class="page-link">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                {% if page_obj.has_next %}
+                    <a class="page-link" href="?{{ filtros.urlencode }}&page={{ page_obj.next_page_number }}">
+                        Próxima
+                    </a>
+                {% else %}
+                    <span class="page-link">Próxima</span>
+                {% endif %}
+            </li>
+
+            <li class="page-item {% if not page_obj.has_next %}disabled{% endif %}">
+                <a class="page-link" href="?{{ filtros.urlencode }}&page={{ page_obj.paginator.num_pages }}">
+                    Última »
+                </a>
+            </li>
+
+        </ul>
+    </div>
+{% endif %}
+    <div class="footer-total">
+        <span style="color: #6b7280; font-weight: 600;">TOTAL GERAL PRODUZIDO:</span>
+        <span style="font-size: 24px; color: #764ba2; font-weight: 800; margin-left: 15px;">{{ total_geral }}</span>
+    </div>
+</div>
+{% elif filtros.data_inicio %}
+<div class="resultado-card">
+    <div class="empty-state">
+        <p style="font-size: 40px;">🔍</p>
+        <h3>Nenhum registro encontrado</h3>
+        <p>Tente ajustar o período ou os filtros de busca.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

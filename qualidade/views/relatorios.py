@@ -11,107 +11,102 @@ from django.db.models import Sum
 from datetime import datetime, timedelta
 from django.utils import timezone 
 from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.units import cm
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from django.core.paginator import Paginator
 
-from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2
+from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2, RegistroParte
 
 
 @login_required
-def relatorios(request):
-    """Página de relatórios detalhados (apenas qualidade)"""
+def relatorio_producao(request):
     if request.user.perfil.tipo != 'qualidade':
-        messages.error(request, 'Apenas usuários da qualidade podem acessar relatórios')
+        messages.error(request, 'Acesso negado.')
         return redirect('home')
-    
-    # Buscar filtros
+
+    # 1. Captura de Filtros
     data_inicio = request.GET.get('data_inicio')
     data_fim = request.GET.get('data_fim')
-    parte_id = request.GET.get('parte_id')
-    operador_id = request.GET.get('operador_id')
-    nome_ficha = request.GET.get('nome_ficha')
-    
-    # Buscar todas as partes e operadores para os filtros
-    partes = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome')
-    operadores = User.objects.filter(perfil__tipo='operador').order_by('username')
-    nomes_fichas = (
-        Ficha.objects.filter(excluido=False)
-        .order_by('nome_ficha')
-        .values_list('nome_ficha', flat=True)
-        .distinct()
-    )
-    
-    # Inicializar dados
-    dados_relatorio = None
+    perfil_id = request.GET.get('perfil_id')    # ID do User (quem lançou)
+    nome_ficha = request.GET.get('nome_ficha')  # Nome do operador da banca
+    parte_id = request.GET.get('parte_id')      # ID da Parte (Sola, etc)
+
+    # Dados para carregar os selects do filtro
+    todos_usuarios = User.objects.filter(perfil__tipo='operador').order_by('first_name')
+    todas_partes = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome')
+    # Nomes únicos de fichas cadastrados no sistema para o filtro
+    nomes_fichas_unicos = Ficha.objects.filter(excluido=False).values_list('nome_ficha', flat=True).distinct().order_by('nome_ficha')
+
+    resultados = []
+    totais_por_parte = {}
     total_geral = 0
 
-    # Se houver filtros aplicados, processar
+    # 2. Lógica de Busca (Só executa se houver datas)
     if data_inicio and data_fim:
-        data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-        data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
-        
+        # Filtro base: Fichas no período e não excluídas
         fichas = Ficha.objects.filter(
-            data__gte=data_inicio_obj,
-            data__lte=data_fim_obj,
+            data__range=[data_inicio, data_fim],
             excluido=False
-        ).prefetch_related('registros__parte', 'operador')
-        
+        )
+
+        # Aplicar filtros opcionais
+        if perfil_id:
+            fichas = fichas.filter(operador_id=perfil_id)
         if nome_ficha:
             fichas = fichas.filter(nome_ficha=nome_ficha)
 
-        if operador_id:
-            fichas = fichas.filter(operador_id=operador_id)
-        
-        # Agrupar dados por operador
-        dados_por_operador = {}
-        
-        for ficha in fichas:
-            operador_nome = ficha.operador.get_full_name() or ficha.operador.username
+        # Buscar os registros de partes dessas fichas
+        # Usamos prefetch_related para não travar o banco com muitas queries
+        registros = RegistroParte.objects.filter(ficha__in=fichas).select_related('ficha', 'parte', 'ficha__operador')
+
+        if parte_id:
+            registros = registros.filter(parte_id=parte_id)
+
+        # 3. Organização dos dados para o Template
+        # Queremos mostrar: Data | Nome Ficha | Parte | Quantidade (Soma do JSON)
+        for reg in registros:
+            qtd_total_registro = reg.total() # Usa o método que já tem no model
+            nome_parte = reg.parte.nome
             
-            if operador_nome not in dados_por_operador:
-                dados_por_operador[operador_nome] = {
-                    'fichas': {},  # nome da ficha -> partes
-                    'totais_partes': {}  # total geral por parte do operador
-                }
+            resultados.append({
+                'data': reg.ficha.data,
+                'perfil': reg.ficha.operador.get_full_name() or reg.ficha.operador.username,
+                'nome_ficha': reg.ficha.nome_ficha,
+                'parte': reg.parte.nome,
+                'quantidade': qtd_total_registro
+            })
 
-            registros = ficha.registros.all().select_related('parte')
-            if parte_id:
-                registros = ficha.registros.all()
+            if nome_parte in totais_por_parte:
+                totais_por_parte[nome_parte] += qtd_total_registro
+            else:
+                totais_por_parte[nome_parte] = qtd_total_registro
 
-            for registro in registros:
-                parte_nome = registro.parte.nome
-                valor = registro.total()
+            total_geral += qtd_total_registro
 
-                # --- Dentro da ficha específica ---
-                if ficha.nome_ficha not in dados_por_operador[operador_nome]['fichas']:
-                    dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha] = {}
-                if parte_nome not in dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha]:
-                    dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha][parte_nome] = 0
-                dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha][parte_nome] += valor
+        # Ordenar resultados por data
+        resultados.sort(key=lambda x: (x['parte'], x['data']))
 
-                # --- Totais por parte (somando tudo do operador) ---
-                if parte_nome not in dados_por_operador[operador_nome]['totais_partes']:
-                    dados_por_operador[operador_nome]['totais_partes'][parte_nome] = 0
-                dados_por_operador[operador_nome]['totais_partes'][parte_nome] += valor
+    
+    # ---- LOGICA DE PAGINAÇÃO ------
+    paginator = Paginator(resultados, 50) # 50 registros por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
-                # --- Total geral ---
-                total_geral += valor
-
-        dados_relatorio = dados_por_operador
 
     context = {
-        'dados_relatorio': dados_relatorio,
+        'page_obj': page_obj,
+        'totais_por_parte': totais_por_parte,
         'total_geral': total_geral,
-        'data_inicio': data_inicio_obj if data_inicio and data_fim else None,
-        'data_fim': data_fim_obj if data_inicio and data_fim else None,
-        'partes': partes,
-        'operadores': operadores,
-        'nomes_fichas': nomes_fichas,
+        'usuarios': todos_usuarios,
+        'partes': todas_partes,
+        'nomes_fichas': nomes_fichas_unicos,
+        # Mantém os filtros nos campos após o post
+        'filtros': request.GET 
     }
     
-    return render(request, 'qualidade/relatorios.html', context)
-
+    return render(request, 'qualidade/relatorio_producao.html', context)
 
 
 
@@ -274,228 +269,151 @@ def gerar_relatorio_ficha_inventario(request, ficha_id):
 
 
 @login_required
-def gerar_relatorio_periodo(request):
-    """Gerar relatório PDF de período (MESMA ESTRUTURA da view relatorios)"""
+def gerar_pdf_producao(request):
     if request.user.perfil.tipo != 'qualidade':
-        messages.error(request, 'Apenas usuários da qualidade podem gerar relatórios')
-        return redirect('home')
-    
-    # Buscar parâmetros (IGUAIS à view relatorios)
+        return HttpResponse('Acesso negado', status=403)
+
+    # 1. Filtros
     data_inicio = request.GET.get('data_inicio')
     data_fim = request.GET.get('data_fim')
-    parte_id = request.GET.get('parte_id')
-    operador_id = request.GET.get('operador_id')
+    perfil_id = request.GET.get('perfil_id')
     nome_ficha = request.GET.get('nome_ficha')
-    
-    if not data_inicio or not data_fim:
-        messages.error(request, 'Selecione o período')
-        return redirect('relatorios')
-    
-    # Converter strings para datas
-    data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d').date()
-    data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    parte_id = request.GET.get('parte_id')
 
-    # Buscar fichas no período (IGUAL à view relatorios)
-    fichas = Ficha.objects.filter(
-        data__gte=data_inicio_obj,
-        data__lte=data_fim_obj,
-        excluido=False
-    )
-    
+    if not data_inicio or not data_fim:
+        return HttpResponse('Selecione um período.')
+
+    # 2. Busca e Processamento (Lógica idêntica à view do sistema)
+    fichas = Ficha.objects.filter(data__range=[data_inicio, data_fim], excluido=False)
+    if perfil_id:
+        fichas = fichas.filter(operador_id=perfil_id)
     if nome_ficha:
         fichas = fichas.filter(nome_ficha=nome_ficha)
-    if operador_id:
-        fichas = fichas.filter(operador_id=operador_id)
 
-    # Agrupar dados por operador (IGUAL à view relatorios)
-    dados_por_operador = {}
-    total_geral = 0
-    
-    for ficha in fichas:
-        operador_nome = ficha.operador.get_full_name() or ficha.operador.username
-        
-        if operador_nome not in dados_por_operador:
-            dados_por_operador[operador_nome] = {
-                'fichas': {},  # nome da ficha -> partes
-                'totais_partes': {}  # total geral por parte do operador
-            }
-
-        registros = ficha.registros.all().select_related('parte')
-        if parte_id:
-            registros = registros.filter(parte_id=parte_id)
-
-        for registro in registros:
-            parte_nome = registro.parte.nome
-            valor = registro.total()
-
-            # Dentro da ficha específica
-            if ficha.nome_ficha not in dados_por_operador[operador_nome]['fichas']:
-                dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha] = {}
-            if parte_nome not in dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha]:
-                dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha][parte_nome] = 0
-            dados_por_operador[operador_nome]['fichas'][ficha.nome_ficha][parte_nome] += valor
-
-            # Totais por parte (somando tudo do operador)
-            if parte_nome not in dados_por_operador[operador_nome]['totais_partes']:
-                dados_por_operador[operador_nome]['totais_partes'][parte_nome] = 0
-            dados_por_operador[operador_nome]['totais_partes'][parte_nome] += valor
-
-            # Total geral
-            total_geral += valor
-
-    # === GERAR O PDF COM A MESMA ESTRUTURA ===
-    buffer = BytesIO()
-    p = canvas.Canvas(buffer, pagesize=landscape(A4))
-    width, height = landscape(A4)
-    
-    # Cabeçalho
-    p.setFont("Helvetica-Bold", 18)
-    p.drawString(50, height - 50, "Relatório de Produção por Período")
-    
-    p.setFont("Helvetica", 11)
-    periodo_texto = f"Período: {data_inicio_obj.strftime('%d/%m/%Y')} a {data_fim_obj.strftime('%d/%m/%Y')}"
-    p.drawString(50, height - 75, periodo_texto)
-    
-    # Filtros aplicados
-    y = height - 95
-    p.setFont("Helvetica", 9)
-    
-    if operador_id:
-        operador = User.objects.filter(id=operador_id).first()
-        if operador:
-            p.drawString(50, y, f"Filtro: Operador {operador.get_full_name() or operador.username}")
-            y -= 12
-    
+    registros = RegistroParte.objects.filter(ficha__in=fichas).select_related('ficha', 'parte', 'ficha__operador')
     if parte_id:
-        parte = ParteCalcado.objects.filter(id=parte_id).first()
-        if parte:
-            p.drawString(50, y, f"Filtro: Parte {parte.nome}")
-            y -= 12
-    
-    if nome_ficha:
-        p.drawString(50, y, f"Filtro: Ficha {nome_ficha}")
-        y -= 12
-    
-    p.line(50, y, width - 50, y)
-    y -= 25
-    
-    # === DADOS POR OPERADOR ===
-    for operador_nome, dados in sorted(dados_por_operador.items()):
-        # Verificar espaço
-        if y < 200:
-            p.showPage()
-            y = height - 50
+        registros = registros.filter(parte_id=parte_id)
+
+    # 3. Cálculo de Totais (A lógica que adicionamos agora)
+    totais_por_parte = {}
+    total_geral = 0
+    dados_para_tabela = []
+
+    for reg in registros:
+        qtd = reg.total()
+        nome_parte = reg.parte.nome
         
-        # Nome do Operador
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(50, y, f"👤 {operador_nome}")
-        y -= 25
+        # Acumula para o resumo
+        totais_por_parte[nome_parte] = totais_por_parte.get(nome_parte, 0) + qtd
+        total_geral += qtd
         
-        # === FICHAS DO OPERADOR ===
-        for nome_ficha_key, partes_ficha in sorted(dados['fichas'].items()):
-            if y < 100:
-                p.showPage()
-                y = height - 50
-            
-            # Nome da Ficha
-            p.setFont("Helvetica-Bold", 11)
-            p.drawString(70, y, f"📋 Nome: {nome_ficha_key}")
-            y -= 18
-            
-            # Cabeçalho da tabela de partes
-            p.setFont("Helvetica-Bold", 9)
-            p.drawString(90, y, "Peças")
-            p.drawRightString(width - 100, y, "Quantidade de Pares")
-            y -= 2
-            p.line(90, y, width - 100, y)
-            y -= 12
-            
-            # Partes da ficha
-            p.setFont("Helvetica", 9)
-            for parte_nome, quantidade in sorted(partes_ficha.items()):
-                if y < 50:
-                    p.showPage()
-                    y = height - 50
-                
-                p.drawString(90, y, parte_nome)
-                p.drawRightString(width - 100, y, str(quantidade))
-                y -= 14
-            
-            y -= 8  # Espaço entre fichas
-        
-        # === TOTAIS DO OPERADOR (por parte) ===
-        if dados['totais_partes']:
-            if y < 120:
-                p.showPage()
-                y = height - 50
-            
-            y -= 10
-            p.line(70, y, width - 100, y)
-            y -= 15
-            
-            p.setFont("Helvetica-Bold", 11)
-            p.drawString(70, y, "Totais do Perfil:")
-            y -= 18
-            
-            # Cabeçalho
-            p.setFont("Helvetica-Bold", 9)
-            p.drawString(90, y, "Parte")
-            p.drawRightString(width - 100, y, "Total")
-            y -= 2
-            p.line(90, y, width - 100, y)
-            y -= 12
-            
-            # Totais por parte
-            p.setFont("Helvetica", 9)
-            for parte_nome, total_parte in sorted(dados['totais_partes'].items()):
-                if y < 50:
-                    p.showPage()
-                    y = height - 50
-                
-                p.drawString(90, y, parte_nome)
-                p.drawRightString(width - 100, y, str(total_parte))
-                y -= 14
-        
-        y -= 20  # Espaço entre operadores
-    
-    # === TOTAL GERAL ===
-    if y < 80:
-        p.showPage()
-        y = height - 50
-    
-    y -= 10
-    p.line(50, y, width - 50, y)
-    y -= 30
-    
+        # Guarda para a tabela
+        dados_para_tabela.append(reg)
+
+    # Ordenar dados da tabela por data
+    dados_para_tabela.sort(key=lambda x: x.ficha.data)
+
+    # 4. Configuração do ReportLab
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="producao_{data_inicio}.pdf"'
+
+    p = canvas.Canvas(response, pagesize=A4)
+    largura, altura = A4
+    y = altura - 2 * cm
+
+    # Título e Período
     p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, y, "TOTAL GERAL:")
-    p.drawRightString(width - 100, y, str(total_geral))
-    
-    y -= 10
+    p.setFillColor(colors.HexColor("#111827"))
+    p.drawString(2 * cm, y, "Relatório de Produção Detalhado")
     p.setFont("Helvetica", 10)
-    p.drawCentredString(width / 2, y, "peças produzidas no período")
+    p.setFillColor(colors.HexColor("#6b7280"))
+    p.drawString(2 * cm, y - 0.6 * cm, f"Período: {data_inicio} até {data_fim}")
     
-    # Rodapé
-    p.setFont("Helvetica", 8)
-    p.drawString(50, 30, f"Gerado em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}")
-    p.drawRightString(width - 50, 30, f"Usuário: {request.user.username}")
+    y -= 1.8 * cm
+
+    # --- SEÇÃO DE RESUMO (OS CARDS NO PDF) ---
+    p.setFont("Helvetica-Bold", 10)
+    p.setFillColor(colors.HexColor("#374151"))
+    p.drawString(2 * cm, y, "Resumo por Parte:")
+    y -= 0.6 * cm
+
+    # Desenhar pequenos "cards" de resumo
+    x_offset = 2 * cm
+    for parte, total in totais_por_parte.items():
+        # Desenha um retângulo sutil de fundo
+        p.setStrokeColor(colors.HexColor("#e5e7eb"))
+        p.setFillColor(colors.HexColor("#f9fafb"))
+        p.roundRect(x_offset, y - 1 * cm, 3.5 * cm, 1.2 * cm, 4, fill=1)
+        
+        # Texto do Total
+        p.setFillColor(colors.HexColor("#667eea"))
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(x_offset + 0.3 * cm, y - 0.3 * cm, str(total))
+        
+        # Texto da Parte
+        p.setFillColor(colors.HexColor("#6b7280"))
+        p.setFont("Helvetica", 7)
+        p.drawString(x_offset + 0.3 * cm, y - 0.80 * cm, parte.upper())
+        
+        x_offset += 3.8 * cm # Move para o lado para o próximo card
+        
+        # Se ultrapassar a largura da página, pula linha
+        if x_offset > largura - 5 * cm:
+            x_offset = 2 * cm
+            y -= 1.5 * cm
+
+    y -= 1.5 * cm
+    p.setStrokeColor(colors.HexColor("#e5e7eb"))
+    p.line(2 * cm, y, largura - 2 * cm, y)
+
+    # --- TABELA DE REGISTROS ---
+    y -= 0.8 * cm
+    p.setFont("Helvetica-Bold", 9)
+    p.setFillColor(colors.HexColor("#374151"))
+    p.drawString(2 * cm, y, "DATA")
+    p.drawString(4.5 * cm, y, "LANÇADO POR")
+    p.drawString(9 * cm, y, "OPERADOR (FICHA)")
+    p.drawString(14 * cm, y, "PARTE")
+    p.drawRightString(largura - 2 * cm, y, "QTD")
     
+    y -= 0.3 * cm
+    p.line(2 * cm, y, largura - 2 * cm, y)
+    y -= 0.6 * cm
+
+    p.setFont("Helvetica", 9)
+    for reg in dados_para_tabela:
+        if y < 3 * cm:
+            p.showPage()
+            y = altura - 2 * cm
+            p.setFont("Helvetica", 9)
+
+        qtd = reg.total()
+        perfil_nome = reg.ficha.operador.get_full_name() or reg.ficha.operador.username
+
+        p.setFillColor(colors.black)
+        p.drawString(2 * cm, y, reg.ficha.data.strftime('%d/%m/%Y'))
+        p.drawString(4.5 * cm, y, str(perfil_nome)[:20])
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(9 * cm, y, str(reg.ficha.nome_ficha)[:25])
+        p.setFont("Helvetica", 9)
+        p.drawString(14 * cm, y, str(reg.parte.nome)[:20])
+        
+        p.setFillColor(colors.HexColor("#667eea"))
+        p.drawRightString(largura - 2 * cm, y, str(qtd))
+        
+        y -= 0.6 * cm
+
+    # Rodapé Final
+    y -= 0.5 * cm
+    p.setStrokeColor(colors.HexColor("#764ba2"))
+    p.line(largura - 7 * cm, y + 0.3 * cm, largura - 2 * cm, y + 0.3 * cm)
+    p.setFont("Helvetica-Bold", 12)
+    p.setFillColor(colors.HexColor("#764ba2"))
+    p.drawString(largura - 8 * cm, y - 0.2 * cm, "TOTAL GERAL:")
+    p.drawRightString(largura - 2 * cm, y - 0.2 * cm, str(total_geral))
+
+    p.showPage()
     p.save()
-    buffer.seek(0)
-    
-    # Resposta HTTP
-    response = HttpResponse(buffer, content_type='application/pdf')
-    
-    # Nome do arquivo
-    nome_arquivo = f'relatorio_{data_inicio_obj.strftime("%Y%m%d")}_{data_fim_obj.strftime("%Y%m%d")}'
-    if operador_id:
-        nome_arquivo += f'_op{operador_id}'
-    if nome_ficha:
-        nome_ficha_limpo = nome_ficha.replace(' ', '_')[:15]
-        nome_arquivo += f'_{nome_ficha_limpo}'
-    nome_arquivo += '.pdf'
-    
-    response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
     return response
 
 

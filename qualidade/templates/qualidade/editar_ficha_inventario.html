@@ -17,22 +17,9 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
 
-    .ficha-header-info h2 {
-        font-size: 28px;
-        color: #111827;
-        margin-bottom: 10px;
-    }
-
-    .ficha-header-info p {
-        color: #6b7280;
-        margin-bottom: 5px;
-    }
-
-    .add-item-section h3 {
-        font-size: 22px;
-        color: #111827;
-        margin-bottom: 20px;
-    }
+    .ficha-header-info h2 { font-size: 28px; color: #111827; margin-bottom: 10px; }
+    .ficha-header-info p { color: #6b7280; margin-bottom: 5px; }
+    .add-item-section h3 { font-size: 22px; color: #111827; margin-bottom: 20px; }
 
     /* ========== FORMULÁRIOS ========== */
     .form-row {
@@ -42,20 +29,10 @@
         margin-bottom: 20px;
     }
 
-    .form-group {
-        margin-bottom: 0;
-    }
+    .form-group { margin-bottom: 0; }
+    .form-label { display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 14px; }
 
-    .form-label {
-        display: block;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-    .form-input,
-    .form-select {
+    .form-input, .form-select {
         width: 100%;
         padding: 10px 12px;
         border: 2px solid #e5e7eb;
@@ -63,11 +40,7 @@
         font-size: 15px;
     }
 
-    .form-input:focus,
-    .form-select:focus {
-        outline: none;
-        border-color: #667eea;
-    }
+    .form-input:focus, .form-select:focus { outline: none; border-color: #667eea; }
 
     .form-group input[name="quantidade_pe_esquerdo"],
     .form-group input[name="quantidade_pe_direito"] {
@@ -76,79 +49,77 @@
         text-align: center;
     }
 
-    .form-group input[name="quantidade_pe_esquerdo"]:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .form-group input[name="quantidade_pe_direito"]:focus {
-        border-color: #764ba2;
-        box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
-    }
+    .form-group input[name="quantidade_pe_esquerdo"]:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    .form-group input[name="quantidade_pe_direito"]:focus { border-color: #764ba2; box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1); }
 
     /* ========== TABELA ========== */
-    .items-table {
-        overflow: hidden;
-    }
+    .items-table { overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    thead {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    th {
-        padding: 15px;
-        text-align: left;
-        font-weight: 600;
-    }
-
-    td {
-        padding: 15px;
-        border-bottom: 1px solid #e5e7eb;
-        vertical-align: middle;
-    }
-
-    tr:last-child td {
-        border-bottom: none;
+    thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    tbody tr {
+    border-left: 4px solid transparent; /* Reserva o espaço */
+    transition: all 0.2s;
     }
 
     tbody tr:hover {
-        background: #f9fafb;
+        border-left: 4px solid #667eea; /* Uma linha roxa indica o item ativo */
     }
+    th { padding: 15px; text-align: left; font-weight: 600; }
 
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #6b7280;
-    }
+    td {
+    padding: 15px;
+    /* De 1px para 2px e uma cor um pouco mais forte */
+    border-bottom: 2px solid #e2e8f0; 
+    vertical-align: middle;}
+
+    tr:last-child td { border-bottom: none; }
+
+    /* Efeito Zebrado e Hover (Unificados) */
+    .items-table tbody tr:nth-child(even) {
+    background-color: #f1f5f9; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
 
     .color-badge {
         display: inline-block;
-        width: 20px;
-        height: 20px;
+        width: 20px; height: 20px;
         border-radius: 50%;
         border: 2px solid #e5e7eb;
         vertical-align: middle;
         margin-right: 8px;
     }
 
-    /* ========== CONTROLES DE QUANTIDADE ========== */
+    /* ========== BOTÕES DE CONTROLE DE QUANTIDADE ========== */
+    .btn-qty {
+        border: none;
+        border-radius: 6px;
+        width: 32px; height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: white;
+    }
+
+    .btn-qty-add { background-color: #10b981; box-shadow: 0 2px 0 #059669; }
+    .btn-qty-add:hover { background-color: #059669; transform: translateY(-1px); }
+    .btn-qty-add:active { transform: translateY(1px); box-shadow: none; }
+
+    .btn-qty-sub { background-color: #ef4444; box-shadow: 0 2px 0 #dc2626; }
+    .btn-qty-sub:hover { background-color: #dc2626; transform: translateY(-1px); }
+    .btn-qty-sub:active { transform: translateY(1px); box-shadow: none; }
+
+    /* ========== ESTRUTURA DOS CONTROLES (PE E PD) ========== */
     .quantity-controls-wrapper {
         display: flex;
         flex-direction: column;
         gap: 12px;
     }
 
-    .foot-section {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
+    .foot-section { display: flex; align-items: center; gap: 8px; }
 
     .foot-label {
         font-weight: bold;
@@ -164,38 +135,17 @@
         margin: 4px 0;
     }
 
-    .quantity-readonly {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        color: #374151;
-    }
-
-    .quantity-readonly span:not(.separator) {
-        font-weight: 600;
-    }
-
-    .quantity-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: nowrap;
-    }
-
-    .quantity-form {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
+    .quantity-controls { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+    .quantity-form { display: inline-flex; align-items: center; gap: 4px; }
 
     .quantity-input {
-        width: 50px;
-        padding: 6px 4px;
-        border: 2px solid #e5e7eb;
-        border-radius: 6px;
+        width: 45px;
         text-align: center;
-        font-size: 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        margin: 0 4px;
+        padding: 4px 0;
+        font-weight: bold;
     }
 
     .current-quantity {
@@ -206,36 +156,7 @@
         color: #374151;
     }
 
-    .separator {
-        color: #9ca3af;
-        font-weight: normal;
-        font-size: 14px;
-    }
-
-    /* ========== BOTÕES ========== */
-    .btn-add,
-    .btn-remove {
-        padding: 6px 10px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 16px;
-        background-color: #f0f0f0;
-        transition: all 0.2s ease;
-        min-width: 36px;
-        height: 36px;
-    }
-
-    .btn-add:hover {
-        background-color: #4CAF50;
-        transform: scale(1.05);
-    }
-
-    .btn-remove:hover {
-        background-color: #f44336;
-        transform: scale(1.05);
-    }
-
+    /* ========== BOTÕES DE AÇÃO (LIXEIRA) ========== */
     .btn-danger.btn-icon {
         padding: 6px 12px;
         background-color: #f44336;
@@ -247,34 +168,13 @@
         transition: all 0.2s ease;
     }
 
-    .btn-danger.btn-icon:hover {
-        background-color: #d32f2f;
-        transform: scale(1.05);
-    }
+    .btn-danger.btn-icon:hover { background-color: #d32f2f; transform: scale(1.05); }
 
     /* ========== PAGINAÇÃO ========== */
-    .paginacao-wrapper {
-        padding: 20px;
-        border-top: 1px solid #e5e7eb;
-        background: #f9fafb;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .pagination li {
-        display: inline-block;
-    }
-
-    .pagination li a,
-    .pagination li span {
+    .paginacao-wrapper { padding: 20px; border-top: 1px solid #e5e7eb; background: #f9fafb; }
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 10px; list-style: none; margin: 0; padding: 0; }
+    
+    .pagination li a, .pagination li span {
         display: inline-block;
         padding: 8px 16px;
         border-radius: 8px;
@@ -282,9 +182,6 @@
         font-weight: 500;
         text-decoration: none;
         transition: all 0.2s ease;
-    }
-
-    .pagination li a {
         background: white;
         color: #667eea;
         border: 2px solid #e5e7eb;
@@ -305,373 +202,30 @@
         font-weight: 600;
     }
 
-    .pagination li.disabled span {
-        background: #f3f4f6;
-        color: #9ca3af;
-        border: 2px solid #e5e7eb;
-        cursor: not-allowed;
-    }
+    .pagination li.disabled span { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
 
-    /* ========== STATS ========== */
-    .stats-section {
-        padding: 20px;
-    }
+    /* ========== STATS E FILTROS ========== */
+    .stats-section > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; }
+    .stats-section .stat-item { text-align: center; }
+    .stats-section .stat-label { font-size: 14px; color: #6b7280; margin-bottom: 5px; }
+    .stats-section .stat-value { font-size: 28px; font-weight: bold; }
 
-    .stats-section > div {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 20px;
-    }
+    .filters-section form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+    .filters-section form > div:not(:last-child) { flex: 1; min-width: 150px; }
 
-    .stats-section > div > div {
-        text-align: center;
-    }
-
-    .stats-section > div > div > div:first-child {
-        font-size: 14px;
-        color: #6b7280;
-        margin-bottom: 5px;
-    }
-
-    .stats-section > div > div > div:last-child {
-        font-size: 28px;
-        font-weight: bold;
-    }
-
-    /* ========== FILTROS ========== */
-    .filters-section h3 {
-        font-size: 18px;
-        color: #111827;
-        margin-bottom: 15px;
-    }
-
-    .filters-section form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: end;
-    }
-
-    .filters-section form > div:not(:last-child) {
-        flex: 1;
-        min-width: 150px;
-    }
-
-    .filters-section form > div:last-child {
-        display: flex;
-        gap: 8px;
-    }
-
-    .filters-section label {
-        display: block;
-        font-size: 13px;
-        color: #6b7280;
-        margin-bottom: 5px;
-    }
-
-    .filters-section .form-select {
-        width: 100%;
-        padding: 8px 12px;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 14px;
-    }
-
-    .filters-section .form-select:focus {
-        outline: none;
-        border-color: #667eea;
-    }
-
-    .filters-section .btn {
-        white-space: nowrap;
-    }
-
-    /* ========== RESPONSIVIDADE PARA TABLETS (768px - 1024px) ========== */
-    @media screen and (max-width: 1024px) {
-        .ficha-header-info,
-        .add-item-section,
-        .stats-section,
-        .filters-section {
-            padding: 20px;
-        }
-
-        .form-row {
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-        }
-
-        td,
-        th {
-            padding: 12px 8px;
-            font-size: 14px;
-        }
-
-        .quantity-controls-wrapper {
-            gap: 10px;
-        }
-
-        .foot-label {
-            font-size: 12px;
-            min-width: 22px;
-        }
-
-        .quantity-controls {
-            gap: 6px;
-        }
-
-        .quantity-input {
-            width: 45px;
-            font-size: 13px;
-            padding: 5px 3px;
-        }
-
-        .btn-add,
-        .btn-remove {
-            min-width: 32px;
-            height: 32px;
-            font-size: 14px;
-            padding: 5px 8px;
-        }
-
-        .current-quantity {
-            font-size: 15px;
-        }
-
-        .color-badge {
-            width: 18px;
-            height: 18px;
-        }
-    }
-
-    /* ========== TABLETS PEQUENOS (600px - 768px) ========== */
+    /* ========== RESPONSIVIDADE (TABLETS E MOBILE) ========== */
     @media screen and (max-width: 768px) {
-        .ficha-header-info,
-        .add-item-section,
-        .stats-section,
-        .filters-section {
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .form-row {
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-
-        table {
-            font-size: 13px;
-        }
-
-        td,
-        th {
-            padding: 10px 6px;
-        }
-
-        /* Filtros em coluna */
-        .filters-section form {
-            flex-direction: column;
-        }
-
-        .filters-section form > div {
-            width: 100%;
-        }
-
-        .filters-section form > div:last-child {
-            flex-direction: column;
-        }
-
-        .filters-section .btn {
-            width: 100%;
-        }
-
-        /* Ajustes para seções de pé */
-        .quantity-controls-wrapper {
-            gap: 15px;
-        }
-
-        .foot-section {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-            width: 100%;
-        }
-
-        .foot-label {
-            font-size: 14px;
-            color: #667eea;
-            font-weight: bold;
-            width: 100%;
-            text-align: left;
-            padding-bottom: 4px;
-            border-bottom: 2px solid #667eea;
-        }
-
-        .feet-divider {
-            height: 2px;
-            margin: 8px 0;
-        }
-
-        .quantity-controls {
-            flex-direction: column;
-            gap: 8px;
-            align-items: stretch;
-        }
-
-        .quantity-form {
-            justify-content: center;
-            width: 100%;
-        }
-
-        .separator {
-            display: none;
-        }
-
-        .quantity-input {
-            width: 60px;
-        }
-
-        .current-quantity {
-            display: block;
-            width: 100%;
-            text-align: center;
-            padding: 8px;
-            background-color: #f3f4f6;
-            border-radius: 6px;
-            margin-top: 4px;
-            font-size: 16px;
-        }
-
-        .quantity-readonly {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        /* Paginação responsiva */
-        .pagination {
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .pagination li a,
-        .pagination li span {
-            width: 100%;
-            text-align: center;
-        }
+        .form-row { grid-template-columns: 1fr; }
+        .foot-section { flex-direction: column; align-items: flex-start; }
+        .foot-label { width: 100%; text-align: left; border-bottom: 2px solid #667eea; padding-bottom: 4px; }
     }
 
-    /* ========== MOBILE (até 600px) ========== */
     @media screen and (max-width: 600px) {
-        .ficha-header-info,
-        .add-item-section,
-        .stats-section,
-        .filters-section,
-        .items-table {
-            padding: 15px;
-            border-radius: 10px;
-        }
-
-        /* Transformar tabela em cards */
-        thead {
-            display: none;
-        }
-
-        table,
-        tbody,
-        tr,
-        td {
-            display: block;
-            width: 100%;
-        }
-
-        tr {
-            margin-bottom: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 15px;
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        td {
-            padding: 10px 0;
-            border: none;
-            text-align: left;
-        }
-
-        td:before {
-            content: attr(data-label);
-            font-weight: bold;
-            display: block;
-            margin-bottom: 5px;
-            color: #6b7280;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .quantity-controls-wrapper {
-            gap: 20px;
-        }
-
-        .foot-section {
-            background: #f9fafb;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
-        }
-
-        .foot-label {
-            font-size: 15px;
-            margin-bottom: 8px;
-        }
-
-        .feet-divider {
-            display: none;
-        }
-
-        .quantity-controls {
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .quantity-form {
-            flex: 1;
-            min-width: calc(50% - 5px);
-        }
-
-        .current-quantity {
-            flex: 1 0 100%;
-            margin-top: 10px;
-        }
-
-        .empty-state {
-            padding: 40px 15px;
-            font-size: 14px;
-        }
-
-        /* Paginação mobile */
-        .paginacao-wrapper {
-            padding: 15px;
-        }
-    }
-
-    /* ========== AJUSTES PARA DISPOSITIVOS TOUCH ========== */
-    @media (hover: none) and (pointer: coarse) {
-        .btn-add,
-        .btn-remove,
-        .btn-danger.btn-icon {
-            min-height: 44px;
-            min-width: 44px;
-        }
-
-        .pagination li a,
-        .pagination li span {
-            min-height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        thead { display: none; }
+        table, tbody, tr, td { display: block; width: 100%; }
+        tr { margin-bottom: 15px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 15px; }
+        td { text-align: left; position: relative; padding-left: 50%; }
+        td:before { content: attr(data-label); font-weight: bold; color: #6b7280; }
     }
 </style>
 
@@ -885,7 +439,7 @@
                                         <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
                                         <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
                                         
-                                        <button type="submit" class="btn-add">➕</button>
+                                        <button type="submit" class="btn-qty btn-qty-add" title="Adicionar">➕</button>
                                         <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
@@ -901,7 +455,7 @@
                                         <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
                                         <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
                                         
-                                        <button type="submit" class="btn-add">➖</button>
+                                        <button type="submit" class="btn-qty btn-qty-sub" title="Remover">➖</button>
                                         <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
@@ -931,7 +485,7 @@
                                         <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
                                         <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
                                         
-                                        <button type="submit" class="btn-add">➕</button>
+                                        <button type="submit" class="btn-qty btn-qty-add" title="Adicionar">➕</button>
                                         <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
@@ -947,7 +501,7 @@
                                         <input type="hidden" name="f_cor" value="{{ cor_selecionada|default:'' }}">
                                         <input type="hidden" name="f_numero" value="{{ numero_selecionado|default:'' }}">
                                         
-                                        <button type="submit" class="btn-add">➖</button>
+                                        <button type="submit" class="btn-qty btn-qty-sub" title="Remover">➖</button>
                                         <input type="number" name="valor" class="quantity-input" min="1" value="1">
                                     </form>
 
