@@ -254,7 +254,12 @@ def remover_item_inventario(request, item_id):
         return redirect("home")
 
     # 1. Tenta pegar o item. Se der 404 aqui, é porque ele já foi removido (seu erro atual)
-    item = get_object_or_404(ItemInventario, id=item_id)
+    item = ItemInventario.objects.select_related('modelo', 'cor', 'tamanho').filter(id=item_id).first()
+    
+    if not item:
+        messages.error(request, "Item já foi removido ou não existe.")
+        return redirect("home")
+    
     ficha_id = item.ficha.id
 
     # Permissão
@@ -263,7 +268,12 @@ def remover_item_inventario(request, item_id):
         return redirect("editar_ficha_inventario", ficha_id=ficha_id)
 
     # 2. Prepara a descrição ANTES de deletar
-    info_item = f"{item.modelo.nome} - {item.cor.nome} (Nº {item.tamanho.numero})"
+    nome_modelo = str(item.modelo.nome) # Forçamos a conversão para string real
+    nome_cor = str(item.cor.nome)
+    numero_tam = str(item.tamanho.numero)
+    
+    info_item = f"{nome_modelo} - {nome_cor} (Nº {numero_tam})"
+    
     qtd_pd = item.quantidade_pe_direito
     qtd_pe = item.quantidade_pe_esquerdo
 
@@ -293,7 +303,7 @@ def remover_item_inventario(request, item_id):
         )
 
     # 4. DELEÇÃO SEGURA: Usamos o QuerySet para evitar o erro de 'id is None'
-    ItemInventario.objects.filter(id=item_id).delete()
+    item.delete()
 
     messages.success(request, f"Item {info_item} removido com sucesso!")
     return redirect("editar_ficha_inventario", ficha_id=ficha_id)
