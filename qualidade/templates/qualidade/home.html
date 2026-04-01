@@ -393,8 +393,8 @@
                 <a href="{% url 'editar_ficha_inventario' ficha.id %}" class="btn btn-primary btn-small">✏️ Editar</a>
                 {% endif %}
                 <a href="{% url 'visualizar_ficha_inventario' ficha.id %}" class="btn btn-secondary btn-small">👁️ Ver</a>
-                {% if perfil.tipo == 'qualidade' %}
                 <a href="{% url 'relatorio_inventario' ficha.id %}" class="btn btn-secondary btn-small">📄 </a>
+                {% if perfil.tipo == 'qualidade' %}
                 <a href="{% url 'gerar_relatorio_ficha_inventario' ficha.id %}" class="btn btn-success btn-small">📄 PDF</a>
                 <form method="post" action="{% url 'excluir_ficha_inventario' ficha.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja mover esta ficha para a lixeira?');">
                     {% csrf_token %}
