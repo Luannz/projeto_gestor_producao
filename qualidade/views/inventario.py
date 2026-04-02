@@ -253,7 +253,7 @@ def remover_item_inventario(request, item_id):
     if request.method != "POST":
         return redirect("home")
 
-    # 1. Tenta pegar o item. Se der 404 aqui, é porque ele já foi removido (seu erro atual)
+    # 1. Tenta pegar o item. Se der 404 aqui, é porque ele já foi removido 
     item = ItemInventario.objects.select_related('modelo', 'cor', 'tamanho').filter(id=item_id).first()
     
     if not item:
@@ -307,6 +307,7 @@ def remover_item_inventario(request, item_id):
 
     messages.success(request, f"Item {info_item} removido com sucesso!")
     return redirect("editar_ficha_inventario", ficha_id=ficha_id)
+
 
 @login_required
 def atualizar_quantidade_item(request, item_id):
