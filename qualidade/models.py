@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 
 class NomeOperador(models.Model):
@@ -284,3 +286,9 @@ class LogMovimentacaoV2(models.Model):
 
     class Meta:
         ordering = ['-criado_em']   
+@receiver(pre_save, sender=LogMovimentacaoV2)
+def salvar_identificacao_item(sender, instance, **kwargs):
+    # Se o log tem um item mas a string de identificação ainda está vazia
+    if instance.item and not instance.identificacao_item:
+        item = instance.item
+        instance.identificacao_item = f"{item.modelo.nome} - {item.cor.nome} (Nº {item.tamanho.numero})"

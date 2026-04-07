@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
 from django.contrib.auth.models import User
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from datetime import datetime, timedelta
 from django.utils import timezone 
 from io import BytesIO
@@ -17,7 +17,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from django.core.paginator import Paginator
 
-from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2, RegistroParte
+from ..models import Ficha, ParteCalcado, FichaInventario, LogMovimentacaoV2, RegistroParte, Cor, ItemInventario
 
 
 @login_required
@@ -425,6 +425,23 @@ def historico_inventario(request, ficha_id):
     data_fim = request.GET.get('data_fim')
     tipo_acao = request.GET.get('acao') # adicionar, subtrair ou excluido
 
+    # esses filtros de cor são um pouco mais complexos porque o item pode ter sido excluído (item_id vira NULL) e 
+    # a cor fica só na string de identificação do log. Entao é preciso pegar as cores dos itens atuais da 
+    # ficha e também das movimentações para garantir que mostramos todas as opções de filtro de cor disponíveis 
+    cor_id = request.GET.get('cor_id')
+    ids_cores_na_ficha = ItemInventario.objects.filter(
+        ficha=ficha
+    ).values_list('cor_id', flat=True).distinct()
+
+    ids_cores_nos_logs = LogMovimentacaoV2.objects.filter(
+        ficha=ficha,
+        item__isnull=False # Garante que pegamos logs de quando o item ainda existia
+    ).values_list('item__cor_id', flat=True).distinct()
+
+    todos_ids_cores = set(list(ids_cores_na_ficha) + list(ids_cores_nos_logs))
+    cores_disponiveis = Cor.objects.filter(id__in=todos_ids_cores).order_by('nome')
+    
+    
     movimentacoes = LogMovimentacaoV2.objects.filter(ficha=ficha)
 
     #filtro da data
@@ -448,6 +465,16 @@ def historico_inventario(request, ficha_id):
             # Filtra exatamente pela string 'adicionar' ou 'subtrair'
             movimentacoes = movimentacoes.filter(acao=tipo_acao)
 
+
+    # novo filtro de cor
+    if cor_id:
+        cor_obj = Cor.objects.filter(id=cor_id).first()
+        nome_cor = cor_obj.nome if cor_obj else ""
+        
+        movimentacoes = movimentacoes.filter(
+            Q(item__cor_id=cor_id) | Q(identificacao_item__icontains=f" - {nome_cor} ")
+        )
+
     movimentacoes = movimentacoes.select_related(
         'item', 'item__modelo', 'item__cor', 'item__tamanho', 'operador'
     ).order_by('-criado_em')
@@ -459,6 +486,8 @@ def historico_inventario(request, ficha_id):
     return render(request, 'qualidade/relatorio_inventario.html', {
         'ficha': ficha,
         'movimentacoes': page_obj,
+        'cores': cores_disponiveis,
+        'cor_selecionada': cor_id,
         'data_inicio': data_inicio,
         'data_fim': data_fim,
         'acao_selecionada': tipo_acao,

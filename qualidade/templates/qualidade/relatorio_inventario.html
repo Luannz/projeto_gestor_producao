@@ -308,6 +308,18 @@
             </select>
         </div>
 
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+        <label style="font-size: 12px; font-weight: bold; color: #4b5563;">Cor:</label>
+        <select name="cor_id" class="form-select"> 
+            <option value="">Todas as Cores</option>
+            {% for cor in cores %}
+                <option value="{{ cor.id }}" {% if cor_selecionada == cor.id|stringformat:"s" %}selected{% endif %}>
+                    {{ cor.nome }}
+                </option>
+            {% endfor %}
+        </select>
+        </div>
+
         <div style="display: flex; gap: 10px;">
             <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">
                 Filtrar
@@ -340,13 +352,12 @@
                     <td style="padding: 12px;">{{ log.criado_em|date:"d/m H:i" }}</td>
                     
                     <td style="padding: 12px;">
-                        {% if log.item %}
+                        {% if log.identificacao_item %}
+                            {{ log.identificacao_item }}
+                        {% elif log.item %}
                             {{ log.item.modelo.nome }} - {{ log.item.cor.nome }} (Nº {{ log.item.tamanho.numero }})
                         {% else %}
-                            <span style="color: #6b7280; font-style: italic;">
-                                🗑️ {{ log.identificacao_item|default:"Item Removido" }}
-                            </span>
-                            <br><small style="color: #dc2626;">(Excluído da ficha)</small>
+                            <span class="text-muted">Item Removido</span>
                         {% endif %}
                     </td>
 
