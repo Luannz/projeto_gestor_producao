@@ -421,69 +421,86 @@ def gerar_pdf_producao(request):
 def historico_inventario(request, ficha_id):
     ficha = get_object_or_404(FichaInventario, id=ficha_id)
     
+    # Captura de filtros
     data_inicio = request.GET.get('data_inicio')
     data_fim = request.GET.get('data_fim')
-    tipo_acao = request.GET.get('acao') # adicionar, subtrair ou excluido
-
-    # esses filtros de cor são um pouco mais complexos porque o item pode ter sido excluído (item_id vira NULL) e 
-    # a cor fica só na string de identificação do log. Entao é preciso pegar as cores dos itens atuais da 
-    # ficha e também das movimentações para garantir que mostramos todas as opções de filtro de cor disponíveis 
+    tipo_acao = request.GET.get('acao')
     cor_id = request.GET.get('cor_id')
-    ids_cores_na_ficha = ItemInventario.objects.filter(
-        ficha=ficha
-    ).values_list('cor_id', flat=True).distinct()
 
-    ids_cores_nos_logs = LogMovimentacaoV2.objects.filter(
-        ficha=ficha,
-        item__isnull=False # Garante que pegamos logs de quando o item ainda existia
-    ).values_list('item__cor_id', flat=True).distinct()
-
+    # Lógica de cores (Itens atuais + Itens que já passaram pelos logs)
+    ids_cores_na_ficha = ItemInventario.objects.filter(ficha=ficha).values_list('cor_id', flat=True).distinct()
+    ids_cores_nos_logs = LogMovimentacaoV2.objects.filter(ficha=ficha, item__isnull=False).values_list('item__cor_id', flat=True).distinct()
     todos_ids_cores = set(list(ids_cores_na_ficha) + list(ids_cores_nos_logs))
     cores_disponiveis = Cor.objects.filter(id__in=todos_ids_cores).order_by('nome')
     
-    
+    # Base da Query
     movimentacoes = LogMovimentacaoV2.objects.filter(ficha=ficha)
 
-    #filtro da data
+    # Aplicação de filtros de Data
     if data_inicio and data_fim:
-        movimentacoes = movimentacoes.filter(
-            criado_em__date__gte=data_inicio,
-            criado_em__date__lte=data_fim
-        )
+        movimentacoes = movimentacoes.filter(criado_em__date__gte=data_inicio, criado_em__date__lte=data_fim)
     else:
-        # se não tiver filtro, mantém o padrao de 7 dias
-        hoje = timezone.now().date()
-        uma_semana_atras = hoje - timedelta(days=7)
+        uma_semana_atras = timezone.now().date() - timedelta(days=7)
         movimentacoes = movimentacoes.filter(criado_em__date__gte=uma_semana_atras)
 
-    # agora o filtro de açao
+    # Filtro de Ação
     if tipo_acao:
         if tipo_acao == 'excluido':
-            # Itens que foram apagados da ficha (o item_id no log virou NULL)
             movimentacoes = movimentacoes.filter(item__isnull=True)
         else:
-            # Filtra exatamente pela string 'adicionar' ou 'subtrair'
             movimentacoes = movimentacoes.filter(acao=tipo_acao)
 
-
-    # novo filtro de cor
+    # Filtro de Cor
     if cor_id:
         cor_obj = Cor.objects.filter(id=cor_id).first()
         nome_cor = cor_obj.nome if cor_obj else ""
-        
         movimentacoes = movimentacoes.filter(
             Q(item__cor_id=cor_id) | Q(identificacao_item__icontains=f" - {nome_cor} ")
         )
 
-    movimentacoes = movimentacoes.select_related(
+    # Execução da Query com select_related para performance
+    movimentacoes_queryset = movimentacoes.select_related(
         'item', 'item__modelo', 'item__cor', 'item__tamanho', 'operador'
     ).order_by('-criado_em')
 
-    paginator = Paginator(movimentacoes, 20)  # 20 movimentações por página
+    # --- PROCESSAMENTO ---
+    # Chamada da função auxiliar para agrupar pés em pares
+    lista_final = processar_movimentacoes_para_pares(movimentacoes_queryset)
+    resumo_totais = {}
+
+    for log in lista_final:
+        # Criamos uma chave única para cada item e tipo de ação
+        # Usamos a identificação_item porque ela funciona mesmo se o item for deletado
+        chave = f"{log.identificacao_item}_{log.acao}"
+        
+        if chave not in resumo_totais:
+            resumo_totais[chave] = {
+                'item': log.identificacao_item,
+                'acao': log.acao,
+                'total_pares': 0,
+                'total_pes_sobra': 0,
+                'lado_sobra': '',
+                'pes_avulsos_unicos': 0, # Para logs que não formaram pares
+                'lado_avulso': ''
+            }
+        
+        if log.exibir_como_par:
+            resumo_totais[chave]['total_pares'] += log.qtd_pares_total
+            if log.qtd_sobra > 0:
+                resumo_totais[chave]['total_pes_sobra'] += log.qtd_sobra
+                resumo_totais[chave]['lado_sobra'] = log.lado_sobra
+        else:
+            # Se for um log de pé único que não virou par na lista
+            resumo_totais[chave]['pes_avulsos_unicos'] += log.quantidade_movimentada
+            resumo_totais[chave]['lado_avulso'] = log.lado
+
+    # Paginação
+    paginator = Paginator(lista_final, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'qualidade/relatorio_inventario.html', {
+        'resumo': resumo_totais.values(),
         'ficha': ficha,
         'movimentacoes': page_obj,
         'cores': cores_disponiveis,
@@ -492,3 +509,62 @@ def historico_inventario(request, ficha_id):
         'data_fim': data_fim,
         'acao_selecionada': tipo_acao,
     })
+
+
+# Já que a lógica atual do sistema é baseada em pé esquerdo e pé direito separados, essa função ´ra pra
+# analisar os logs de movimentação e identificar quando dois registros (um de cada lado) 
+# correspondem a um mesmo movimento de par. Ela agrupa esses registros e calcula quantos pares 
+# completos existem, se há sobras de algum lado, e marca os objetos para que o template possa exibir essas 
+# informações, ela é complexa
+def processar_movimentacoes_para_pares(queryset):
+    """
+    Agrupa logs de movimentação individuais (pés) em unidades de 'Pares' 
+    quando detecta ações simultâneas de lados opostos para o mesmo item.
+    
+    Esta função adiciona atributos dinâmicos aos objetos:
+    - exibir_como_par (bool)
+    - qtd_pares_total (int)
+    - qtd_sobra (int)
+    - lado_sobra (str)
+    """
+    lista_final = []
+    skip_ids = set()
+    logs = list(queryset)
+    
+    for i in range(len(logs)):
+        log_atual = logs[i]
+        if log_atual.id in skip_ids:
+            continue
+            
+        par_encontrado = None
+        # Busca nos próximos 10 registros (janela de tempo próxima)
+        for j in range(i + 1, min(i + 11, len(logs))):
+            proximo_log = logs[j]
+            
+            diff_tempo = (log_atual.criado_em - proximo_log.criado_em).total_seconds()
+            
+            # Critérios para agrupar: mesmo item, mesma ação, lado oposto e tempo < 2s
+            if (abs(diff_tempo) < 2 and 
+                log_atual.item_id == proximo_log.item_id and 
+                log_atual.acao == proximo_log.acao and
+                log_atual.lado != proximo_log.lado):
+                par_encontrado = proximo_log
+                break
+        
+        if par_encontrado:
+            # Calcula quantos pares completos existem e se há sobra de algum lado
+            qtd_pe = log_atual.quantidade_movimentada if log_atual.lado == 'PE' else par_encontrado.quantidade_movimentada
+            qtd_pd = log_atual.quantidade_movimentada if log_atual.lado == 'PD' else par_encontrado.quantidade_movimentada
+            
+            log_atual.exibir_como_par = True
+            log_atual.qtd_pares_total = min(qtd_pe, qtd_pd)
+            log_atual.qtd_sobra = abs(qtd_pe - qtd_pd)
+            log_atual.lado_sobra = 'PE' if qtd_pe > qtd_pd else 'PD'
+            
+            skip_ids.add(par_encontrado.id)
+        else:
+            log_atual.exibir_como_par = False
+            
+        lista_final.append(log_atual)
+    
+    return lista_final

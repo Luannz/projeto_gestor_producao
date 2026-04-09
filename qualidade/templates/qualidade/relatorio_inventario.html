@@ -334,13 +334,55 @@
     </form>
 </div>
 
+{% if data_inicio and data_fim %}
+    <div style="margin-bottom: 25px;">
+        <h4 style="font-size: 16px; color: #374151; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            📊 Resumo do Período <span style="font-weight: normal; font-size: 13px; color: #6b7280;">(Baseado nos filtros aplicados)</span>
+        </h4>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            {% for info in resumo %}
+                <div style="background: white; border-left: 4px solid {% if info.acao == 'adicionar' %}#059669{% else %}#dc2626{% endif %}; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="font-size: 14px; font-weight: bold; color: #1f2937; margin-bottom: 5px;">
+                        {{ info.item }}
+                    </div>
+                    <div style="font-size: 13px; color: #4b5563;">
+                        {% if info.acao == 'adicionar' %}
+                            <span style="color: #059669;">➕ Total Adicionado:</span>
+                        {% else %}
+                            <span style="color: #dc2626;">➖ Total Removido:</span>
+                        {% endif %}
+                        
+                        <div style="margin-top: 5px; font-size: 15px;">
+                            {% if info.total_pares > 0 %}
+                                <strong>{{ info.total_pares }} par{{ info.total_pares|pluralize:"es" }}</strong>
+                            {% endif %}
+                            
+                            {% if info.total_pes_sobra > 0 %}
+                                {% if info.total_pares > 0 %} e {% endif %}
+                                <strong>{{ info.total_pes_sobra }} pé{{ info.total_pes_sobra|pluralize }} {{ info.lado_sobra }}</strong>
+                            {% endif %}
+
+                            {% if info.pes_avulsos_unicos > 0 %}
+                                {% if info.total_pares > 0 or info.total_pes_sobra > 0 %} e {% endif %}
+                                <strong>{{ info.pes_avulsos_unicos }} pé{{ info.pes_avulsos_unicos|pluralize }} {{ info.lado_avulso }}</strong>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <p style="font-size: 13px; color: #9ca3af; font-style: italic;">Nenhuma movimentação para resumir neste período.</p>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
 <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden;">
     <table class="table" style="width: 100%;">
         <thead style="background: #f9fafb;">
             <tr>
                 <th style="padding: 12px;">Data/Hora</th>
-                <th style="padding: 12px;">Item</th> <th style="padding: 12px;">Ação</th>
-                <th style="padding: 12px; text-align: center;">Qtd</th>
+                <th style="padding: 12px;">Item</th> 
+                <th style="padding: 12px;">Ação</th>
                 <th style="padding: 12px; text-align: center;">Pares Atuais</th>
                 <th style="padding: 12px; text-align: center;">Avulsos</th>
             </tr>
@@ -362,17 +404,23 @@
 
                     <td style="padding: 12px;">
                         {% if log.acao == 'adicionar' %}
-                            <span style="color: #059669; font-weight: 500;">➕ Adicionou ({{ log.lado }})</span>
+                            <span style="color: #059669; font-weight: 500;">➕ Adicionou </span>
                         {% else %}
-                            <span style="color: #dc2626; font-weight: 500;">➖ Removeu ({{ log.lado }})</span>
+                            <span style="color: #dc2626; font-weight: 500;">➖ Removeu </span>
+                        {% endif %}
+
+                        {% if log.exibir_como_par %}
+                            <strong>{{ log.qtd_pares_total }} par{{ log.qtd_pares_total|pluralize:"es" }}</strong>
+                            {% if log.qtd_sobra > 0 %}
+                                e <strong>{{ log.qtd_sobra }} pé{{ log.qtd_sobra|pluralize }} {{ log.lado_sobra }}</strong>
+                            {% endif %}
+                        {% else %}
+                            <strong>{{ log.quantidade_movimentada }}</strong> pé{{ log.quantidade_movimentada|pluralize }} {{ log.lado }}
                         {% endif %}
                     </td>
 
-                    <td style="padding: 12px; text-align: center;">
-                        <strong>{{ log.quantidade_movimentada }}</strong>
-                    </td>
-
-                    <td style="padding: 12px; background-color: rgba(0,255,0,0.05); color: #059669; border-radius: 4px; font-weight: bold;">
+                    {# As colunas de "Pares Atuais" e "Avulsos" continuam iguais #}
+                    <td style="padding: 12px; background-color: rgba(0,255,0,0.05); color: #059669; border-radius: 4px; font-weight: bold; text-align: center;">
                         {% if log.item %}
                             {{ log.item.total_pares }} Pares
                         {% else %}
@@ -380,17 +428,15 @@
                         {% endif %}
                     </td>
 
-                    <td style="font-weight: 500;">
+                    <td style="padding: 12px; text-align: center; font-weight: 500;">
                         {% if log.item and log.item.tem_sobra %}
-                            {{ log.item.pes_avulsos }} 
-                            pé{{ log.item.pes_avulsos|pluralize }} 
-                            {{ log.item.lado_sobrando }}{{ log.item.pes_avulsos|pluralize:"s" }} 
+                            {{ log.item.pes_avulsos }} pé{{ log.item.pes_avulsos|pluralize }} {{ log.item.lado_sobrando }}
                         {% else %}
                             <span style="color: #9ca3af;">-</span>
                         {% endif %}
                     </td>
                 </tr>
-                {% endfor %}
+            {% endfor %}
         </tbody>
     </table>
 </div>
