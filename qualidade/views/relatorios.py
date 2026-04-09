@@ -34,7 +34,7 @@ def relatorio_producao(request):
     parte_id = request.GET.get('parte_id')      # ID da Parte (Sola, etc)
 
     # Dados para carregar os selects do filtro
-    todos_usuarios = User.objects.filter(perfil__tipo='operador').order_by('first_name')
+    todos_usuarios = User.objects.filter(groups__name='Corte').distinct().order_by('first_name') # só usuarios do grupo corte
     todas_partes = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome')
     # Nomes únicos de fichas cadastrados no sistema para o filtro
     nomes_fichas_unicos = Ficha.objects.filter(excluido=False).values_list('nome_ficha', flat=True).distinct().order_by('nome_ficha')

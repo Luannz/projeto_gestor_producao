@@ -6,7 +6,10 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from datetime import date, datetime
 
-from ..models import Ficha
+from ..models import Ficha, ItemInventario, LogMovimentacaoV2
+from django.db.models import Sum, F, Q
+from django.db.models import Sum, F, Case, When, IntegerField
+from django.db.models.functions import Least, Abs
 
 
 @login_required
@@ -67,3 +70,58 @@ def telas(request):
         'modo': modo,
     }
     return render(request, 'qualidade/telas.html', context)
+
+
+
+@login_required
+def telas_inventario(request):
+    data_str = request.GET.get('data')
+    modo = request.GET.get('modo', 'grafico')
+    
+    if data_str:
+        data_obj = datetime.strptime(data_str, '%Y-%m-%d').date()
+    else:
+        data_obj = date.today()
+
+    # --- 1. TOP ESTOQUE (O que mais tem hoje) ---
+    # Agrupamos por modelo e somamos PD + PE
+    estoque_por_modelo = ItemInventario.objects.values('modelo__nome').annotate(
+        pares_formados=Sum(Least(F('quantidade_pe_direito'), F('quantidade_pe_esquerdo'))),
+        total_avulsos=Sum(Abs(F('quantidade_pe_direito') - F('quantidade_pe_esquerdo')))
+    ).order_by('-pares_formados')[:10]
+
+
+    # 2 ranking avulsos
+    ranking_avulsos = ItemInventario.objects.values('modelo__nome').annotate(
+        sobra=Sum(Abs(F('quantidade_pe_direito') - F('quantidade_pe_esquerdo')))
+    ).filter(sobra__gt=0).order_by('-sobra')[:5]
+
+    # --- 3. SAÍDAS  ---
+    saidas_do_dia = LogMovimentacaoV2.objects.filter(
+        criado_em__date=data_obj,
+        acao='subtrair'
+    ).values('identificacao_item').annotate(
+        total=Sum('quantidade_movimentada')
+    ).order_by('-total')[:10]
+
+    # --- 3. CÁLCULO DE AVULSOS (Diferença entre PD e PE) ---
+    # Itens onde a quantidade de um pé é diferente do outro
+    itens_avulsos = ItemInventario.objects.filter(
+        ~Q(quantidade_pe_direito=F('quantidade_pe_esquerdo'))
+    )
+    
+    # Podemos somar a diferença absoluta para saber quantos "pés" estão sem par
+    total_avulsos = 0
+    for item in itens_avulsos:
+        total_avulsos += abs(item.quantidade_pe_direito - item.quantidade_pe_esquerdo)
+
+    context = {
+        'top_estoque': list(estoque_por_modelo),
+        'top_saidas': list(saidas_do_dia),
+        'total_avulsos': total_avulsos,
+        'data_selecionada': data_obj,
+        'data_hoje': date.today(),
+        'modo': modo,
+        'ranking_avulsos': list(ranking_avulsos),
+    }
+    return render(request, 'qualidade/telas_inventario.html', context)

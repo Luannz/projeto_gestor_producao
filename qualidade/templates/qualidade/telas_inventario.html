@@ -393,257 +393,113 @@
     </style>
 </head>
 <body>
-    <!-- Seletor de Data Sutil -->
     <div class="date-selector">
-        <label>📅</label>
-        <form method="get" style="display: flex; gap: 10px; align-items: center;">
-            <input type="date" 
-                   name="data" 
-                   value="{{ data_selecionada|date:'Y-m-d' }}"
-                   max="{{ data_hoje|date:'Y-m-d' }}">
-            <button type="submit">Buscar</button>
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="date" name="data" value="{{ data_selecionada|date:'Y-m-d' }}">
+            <button type="submit" style="cursor:pointer">Buscar</button>
         </form>
     </div>
 
-    <!-- Cabeçalho -->
     <div class="header">
-        <h1>📊 Dashboard de Produção</h1>
-        
+        <h1>📦 Dashboard de Inventário</h1>
         <div class="header-info">
             <div>
-                <a href="{% url 'telas_inventario' %}" class="voltar-badge btn btn-secondary">Inventário</a>   
+                <a href="{% url 'telas' %}" class="voltar-badge btn btn-secondary">Produção</a>   
             </div>
-            <div>
-                <a class="btn btn-secondary display-mode"
-                href="?modo={% if modo == 'grafico' %}lista{% else %}grafico{% endif %}{% if data_selecionada != data_hoje %}&data={{ data_selecionada|date:'Y-m-d' }}{% endif %}">
-                {% if modo == 'grafico' %}
-                    📋 Ver Lista
-                {% else %}
-                    📊 Ver Gráfico
-                {% endif %}
-                </a>
-            </div>
-            <div class="data-badge">
-                <span>📅</span>
-                <span>{{ data_selecionada|date:"d/m/Y" }}</span>
-                {% if data_selecionada == data_hoje %}
-                <span style="font-size: 14px; opacity: 0.8;">(Hoje)</span>
-                {% endif %}
-            </div>
+            
             <div class="total-geral-badge">
-                <span>TOTAL DO DIA: {{ total_dia }} peças</span>
+                <span>⚠️ {{ total_avulsos }} Pés Avulsos no Total</span>
             </div>
+
+            <div class="data-badge">
+                <span>📅 Movimentação: {{ data_selecionada|date:"d/m/Y" }}</span>
+            </div>
+            
             <div>
                 <a href="{% url 'home' %}" class="voltar-badge btn btn-secondary">← Voltar</a>
             </div>
         </div>
     </div>
 
-    {% if modo == 'grafico' %}
-    <!-- Modo Gráfico -->
     <div class="grafico-container">
-        <canvas id="graficoProducao"></canvas>
-    </div>
-    {% else %}
-    <!-- Cards de Produção -->
-    {% if dados_telao %}
-    <div class="cards-grid">
-        {% for nome_ficha, dados in dados_telao.items %}
-        <div class="card">
-            <div class="card-header">
-                <div class="card-nome">
-                    📋 {{ dados.nome }}
-                </div>
-                <div class="card-operador">
-                    👤 {{ dados.operador }}
-                </div>
-            </div>
-            
-            {% if dados.partes %}
-            <div class="partes-lista">
-                {% for parte_nome, quantidade in dados.partes.items %}
-                <div class="parte-item">
-                    <div class="parte-nome">{{ parte_nome }}</div>
-                    <div class="parte-quantidade">{{ quantidade }}</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div style="text-align: center; padding: 30px; color: #9ca3af; font-style: italic;">
-                Nenhuma parte registrada
-            </div>
-            {% endif %}
-            
-            <div class="card-footer">
-                <div class="total-label">TOTAL</div>
-                <div class="total-valor">{{ dados.total }}</div>
-            </div>
+        <div style="flex: 1.5; min-width: 500px; background: white; padding: 20px; border-radius: 15px;">
+            <canvas id="graficoEstoque"></canvas>
         </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-text">Nenhuma produção registrada neste dia</div>
-    </div>
-    {% endif %}
-    {% endif %}
-
-    <!-- Indicador de Auto-refresh (opcional) -->
-    <div class="refresh-indicator">
-        ⟳ Atualiza automaticamente a cada 50 segundos
+        
+        <div style="flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 15px;">
+            <canvas id="graficoSaidas"></canvas>
+        </div>
     </div>
 
-    <!-- Script de Auto-refresh e Gráfico -->
-    <script>
-        {% if modo == 'grafico' and dados_telao %}
-        // Preparar dados para o gráfico
-        const dadosGrafico = {
-            {% for nome_ficha, dados in dados_telao.items %}
-            '{{ dados.nome|escapejs }}': {{ dados.total }},
-            {% endfor %}
-        };
-
-        const labels = Object.keys(dadosGrafico);
-        const valores = Object.values(dadosGrafico);
-
-        // Gerar cores vibrantes para cada barra
-        const cores = [
-            'rgba(102, 126, 234, 0.8)',
-            'rgba(118, 75, 162, 0.8)',
-            'rgba(237, 100, 166, 0.8)',
-            'rgba(255, 154, 158, 0.8)',
-            'rgba(255, 183, 77, 0.8)',
-            'rgba(129, 212, 250, 0.8)',
-            'rgba(102, 187, 106, 0.8)',
-            'rgba(255, 138, 101, 0.8)',
-        ];
-
-        const coresBorda = [
-            'rgba(102, 126, 234, 1)',
-            'rgba(118, 75, 162, 1)',
-            'rgba(237, 100, 166, 1)',
-            'rgba(255, 154, 158, 1)',
-            'rgba(255, 183, 77, 1)',
-            'rgba(129, 212, 250, 1)',
-            'rgba(102, 187, 106, 1)',
-            'rgba(255, 138, 101, 1)',
-        ];
-
-        // Criar gráfico
-        const ctx = document.getElementById('graficoProducao').getContext('2d');
-        const grafico = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Peças Produzidas',
-                    data: valores,
-                    backgroundColor: cores.slice(0, labels.length),
-                    borderColor: coresBorda.slice(0, labels.length),
-                    borderWidth: 2,
-                    borderRadius: 8,
-                    barPercentage: 0.7,
-                }]
+<script>
+    // 1. GRÁFICO DE ESTOQUE (Top 10 Modelos)
+    // Aqui usamos 'pares_formados' e 'total_avulsos' que vêm do annotate da view
+    const ctxEstoque = document.getElementById('graficoEstoque').getContext('2d');
+    new Chart(ctxEstoque, {
+        type: 'bar', 
+        data: {
+            labels: [{% for i in top_estoque %}'{{ i.modelo__nome }}',{% endfor %}],
+            datasets: [
+                {
+                    label: 'Pares Formados (Completos)',
+                    data: [{% for i in top_estoque %}{{ i.pares_formados }},{% endfor %}],
+                    backgroundColor: '#10b981', // Verde
+                    borderRadius: 5,
+                },
+                {
+                    label: 'Pés Avulsos (Sem Par)',
+                    data: [{% for i in top_estoque %}{{ i.total_avulsos }},{% endfor %}],
+                    backgroundColor: '#f43f5e', // Rosa/Vermelho
+                    borderRadius: 5,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true }, // Barras empilhadas para mostrar o total de peças
+                y: { stacked: true, beginAtZero: true }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Produção por Ficha',
-                        font: {
-                            size: 24,
-                            weight: 'bold'
-                        },
-                        color: '#1e3c72',
-                        padding: 20
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleFont: {
-                            size: 16,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 14
-                        },
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.y + ' peças';
-                            }
-                        }
-                    }
+            plugins: {
+                title: { 
+                    display: true, 
+                    text: 'ESTOQUE REAL: PARES COMPLETOS vs. AVULSOS',
+                    font: { size: 20, weight: 'bold' },
+                    padding: 20
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            color: '#374151',
-                            callback: function(value) {
-                                return value.toLocaleString('pt-BR');
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)',
-                            drawBorder: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Quantidade de Peças',
-                            font: {
-                                size: 16,
-                                weight: 'bold'
-                            },
-                            color: '#6b7280'
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            color: '#374151',
-                            maxRotation: 45,
-                            minRotation: 0
-                        },
-                        grid: {
-                            display: false,
-                            drawBorder: false
-                        }
-                    }
-                },
-                animation: {
-                    duration: 1500,
-                    easing: 'easeInOutQuart'
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 2. GRÁFICO DE SAÍDAS (O que mais saiu na data selecionada)
+    const ctxSaidas = document.getElementById('graficoSaidas').getContext('2d');
+    new Chart(ctxSaidas, {
+        type: 'bar',
+        data: {
+            labels: [{% for i in top_saidas %}'{{ i.identificacao_item|truncatechars:12 }}',{% endfor %}],
+            datasets: [{
+                label: 'Qtd Saída',
+                data: [{% for i in top_saidas %}{{ i.total }},{% endfor %}],
+                backgroundColor: '#3b82f6', // Azul
+                borderColor: '#2563eb',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y', // Barra horizontal
+            plugins: {
+                title: { 
+                    display: true, 
+                    text: 'SAÍDAS DO DIA (RANKING)',
+                    font: { size: 18 }
                 }
             }
-        });
-        {% endif %}
+        }
+    });
 
-        // Auto-refresh a cada 50 segundos
-        setTimeout(function() {
-            location.reload();
-        }, 50000);
-        
-        // Adicionar animação ao carregar
-        document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach((card, index) => {
-                card.style.animationDelay = `${index * 0.1}s`;
-            });
-        });
-    </script>
+    // Auto-refresh a cada 60 segundos
+    setTimeout(() => location.reload(), 60000);
+</script>
 </body>
 </html>
