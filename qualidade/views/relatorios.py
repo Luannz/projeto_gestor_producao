@@ -468,31 +468,39 @@ def historico_inventario(request, ficha_id):
     lista_final = processar_movimentacoes_para_pares(movimentacoes_queryset)
     resumo_totais = {}
 
-    for log in lista_final:
-        # Criamos uma chave única para cada item e tipo de ação
-        # Usamos a identificação_item porque ela funciona mesmo se o item for deletado
+    for log in movimentacoes_queryset: # Usamos o queryset original para pegar valores brutos
         chave = f"{log.identificacao_item}_{log.acao}"
         
         if chave not in resumo_totais:
             resumo_totais[chave] = {
                 'item': log.identificacao_item,
                 'acao': log.acao,
-                'total_pares': 0,
-                'total_pes_sobra': 0,
-                'lado_sobra': '',
-                'pes_avulsos_unicos': 0, # Para logs que não formaram pares
-                'lado_avulso': ''
+                'pd': 0,
+                'pe': 0
             }
         
-        if log.exibir_como_par:
-            resumo_totais[chave]['total_pares'] += log.qtd_pares_total
-            if log.qtd_sobra > 0:
-                resumo_totais[chave]['total_pes_sobra'] += log.qtd_sobra
-                resumo_totais[chave]['lado_sobra'] = log.lado_sobra
+        if log.lado == 'PD':
+            resumo_totais[chave]['pd'] += log.quantidade_movimentada
         else:
-            # Se for um log de pé único que não virou par na lista
-            resumo_totais[chave]['pes_avulsos_unicos'] += log.quantidade_movimentada
-            resumo_totais[chave]['lado_avulso'] = log.lado
+            resumo_totais[chave]['pe'] += log.quantidade_movimentada
+
+    # Agora calculamos os pares sobre o total acumulado
+    lista_resumo_final = []
+    for chave, dados in resumo_totais.items():
+        pd = dados['pd']
+        pe = dados['pe']
+        
+        pares = min(pd, pe)
+        sobra = abs(pd - pe)
+        lado_sobra = 'PD' if pd > pe else 'PE'
+        
+        lista_resumo_final.append({
+            'item': dados['item'],
+            'acao': dados['acao'],
+            'total_pares': pares,
+            'total_sobra': sobra,
+            'lado_sobra': lado_sobra
+        })
 
     # Paginação
     paginator = Paginator(lista_final, 20)
@@ -500,7 +508,7 @@ def historico_inventario(request, ficha_id):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'qualidade/relatorio_inventario.html', {
-        'resumo': resumo_totais.values(),
+        'resumo': lista_resumo_final,
         'ficha': ficha,
         'movimentacoes': page_obj,
         'cores': cores_disponiveis,

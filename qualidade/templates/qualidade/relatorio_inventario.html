@@ -358,14 +358,13 @@
                                 <strong>{{ info.total_pares }} par{{ info.total_pares|pluralize:"es" }}</strong>
                             {% endif %}
                             
-                            {% if info.total_pes_sobra > 0 %}
+                            {% if info.total_sobra > 0 %}
                                 {% if info.total_pares > 0 %} e {% endif %}
-                                <strong>{{ info.total_pes_sobra }} pé{{ info.total_pes_sobra|pluralize }} {{ info.lado_sobra }}</strong>
+                                <strong>{{ info.total_sobra }} pé{{ info.total_sobra|pluralize }} {{ info.lado_sobra }}</strong>
                             {% endif %}
 
-                            {% if info.pes_avulsos_unicos > 0 %}
-                                {% if info.total_pares > 0 or info.total_pes_sobra > 0 %} e {% endif %}
-                                <strong>{{ info.pes_avulsos_unicos }} pé{{ info.pes_avulsos_unicos|pluralize }} {{ info.lado_avulso }}</strong>
+                            {% if info.total_pares == 0 and info.total_sobra == 0 %}
+                                <span class="text-muted">Sem movimentação líquida</span>
                             {% endif %}
                         </div>
                     </div>
