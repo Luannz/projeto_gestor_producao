@@ -238,8 +238,18 @@
         👤 {{ ficha.operador.get_full_name|default:ficha.operador.username }} | 
         🏢 {{ ficha.setor }}
     </p>
-    <div style="margin-top: 15px;">
-        <a href="{% url 'home' %}" class="btn btn-secondary">← Voltar</a>
+    <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="flex: 0 1 auto;">
+        <a href="{% url 'relatorio_inventario' ficha.id %}" class="btn btn-primary" style="min-width: 120px; text-align: center; display: inline-block;">
+            📄 Histórico da Ficha
+        </a>
+    </div>
+
+    <div style="flex: 0 1 auto;">
+        <a href="{% url 'home' %}" class="btn btn-secondary" style="min-width: 120px; text-align: center; display: inline-block;">
+            ← Voltar
+        </a>
+    </div>
     </div>
 </div>
 

@@ -276,10 +276,17 @@
             {% endif %}
         </p>
     </div>
-    
-    <a href="{% url 'home' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 8px; text-decoration: none;">
-        <span style="font-size: 18px;">←</span> Voltar 
-    </a>
+    {% if user.perfil.tipo == 'operador' and ficha.operador == user %}
+        <a href="{% url 'editar_ficha_inventario' ficha.id %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 8px; text-decoration: none;">
+            <span style="font-size: 18px;">←</span> Voltar 
+        </a>
+    {% endif %}
+
+    {% if user.perfil.tipo == 'qualidade'%}
+        <a href="{% url 'home' %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border-radius: 8px; text-decoration: none;">
+            <span style="font-size: 18px;">←</span> Voltar 
+        </a>
+    {% endif %}
 </div>
 
 <div class="filtros-wrapper">

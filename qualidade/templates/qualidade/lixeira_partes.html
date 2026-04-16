@@ -1,6 +1,6 @@
 {% extends 'qualidade/base.html' %}
 
-{% block header_title %}Lixeira de Partes{% endblock %}
+{% block header_title %}Gerenciar Partes{% endblock %}
 
 {% block content %}
 <style>
@@ -122,15 +122,15 @@
 
 <div class="page-header">
     <div>
-        <h2 class="page-title">🗑️ Lixeira de Partes</h2>
-        <p style="color: #6b7280; margin-top: 5px;">Restaure ou exclua permanentemente as partes</p>
+        <h2 class="page-title">⚙️ Partes Desativadas</h2>
+        <p style="color: #6b7280; margin-top: 5px;">Reative partes para que voltem a aparecer no sistema</p>
     </div>
     <a href="{% url 'gerenciar_partes' %}" class="btn btn-secondary">← Voltar</a>
 </div>
 
 <div class="partes-list">
     <div class="partes-list-header">
-        🗑️ Partes na Lixeira ({{ partes.count }})
+        📦 Partes Inativas ({{ partes.count }})
     </div>
     
     {% if partes %}
@@ -138,9 +138,6 @@
         <div class="parte-item">
             <div class="parte-info">
                 <div class="parte-nome">{{ parte.nome }}</div>
-                <div class="parte-status">
-                    Excluída em: {{ parte.excluido_em|date:"d/m/Y H:i" }}
-                </div>
             </div>
             
             <div class="parte-actions">
@@ -149,16 +146,7 @@
                     <input type="hidden" name="acao" value="restaurar">
                     <input type="hidden" name="parte_id" value="{{ parte.id }}">
                     <button type="submit" class="btn-icon btn-restore">
-                        ↩️ Restaurar
-                    </button>
-                </form>
-                
-                <form method="post" style="display: inline;" onsubmit="return confirm('⚠️ ATENÇÃO! Esta ação é PERMANENTE e não pode ser desfeita. Deseja realmente EXCLUIR esta parte?');">
-                    {% csrf_token %}
-                    <input type="hidden" name="acao" value="excluir_permanente">
-                    <input type="hidden" name="parte_id" value="{{ parte.id }}">
-                    <button type="submit" class="btn-icon btn-delete-permanent">
-                        ⚠️ Excluir Permanente
+                        ↩️ Reativar
                     </button>
                 </form>
             </div>
@@ -166,12 +154,11 @@
         {% endfor %}
     {% else %}
     <div class="empty-state">
-        <div style="font-size: 64px; margin-bottom: 20px;">✨</div>
         <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
-            Lixeira Vazia
+            Nenhuma parte inativa 
         </h3>
         <p style="font-size: 16px;">
-            Nenhuma parte na lixeira
+            Partes desativadas aparecerão aqui.
         </p>
     </div>
     {% endif %}

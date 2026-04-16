@@ -61,7 +61,7 @@ def gerenciar_partes(request):
         return redirect('gerenciar_partes')
     
     # Listar apenas partes NÃO EXCLUÍDAS
-    partes = ParteCalcado.objects.filter(excluido=False).order_by('ordem', 'nome')
+    partes = ParteCalcado.objects.filter(ativo=True).order_by('-ordem', 'nome')
     
     context = {
         'partes': partes,
@@ -82,29 +82,19 @@ def lixeira_partes(request):
         
         if acao == 'restaurar':
             try:
-                parte = ParteCalcado.objects.get(id=parte_id, excluido=True)
-                parte.excluido = False
-                parte.excluido_em = None
+                parte = ParteCalcado.objects.get(id=parte_id, ativo=False)
+                parte.ativo = True
                 parte.save()
-                messages.success(request, f'Parte "{parte.nome}" restaurada com sucesso!')
+                messages.success(request, f'Parte "{parte.nome}" reativada com sucesso!')
             except ParteCalcado.DoesNotExist:
-                messages.error(request, 'Parte não encontrada na lixeira')
-        
-        elif acao == 'excluir_permanente':
-            try:
-                parte = ParteCalcado.objects.get(id=parte_id, excluido=True)
-                nome_parte = parte.nome
-                parte.delete()
-                messages.success(request, f'Parte "{nome_parte}" excluída permanentemente!')
-            except ParteCalcado.DoesNotExist:
-                messages.error(request, 'Parte não encontrada na lixeira')
+                messages.error(request, 'Parte não encontrada nas desativadas')
         
         return redirect('lixeira_partes')
     
-    # Listar apenas partes EXCLUÍDAS
-    partes_excluidas = ParteCalcado.objects.filter(excluido=True).order_by('-excluido_em')
+    # Listar apenas partes DESATIVADAS (excluídas)
+    partes_desativadas = ParteCalcado.objects.filter(ativo=False).order_by('-excluido_em')
     
     context = {
-        'partes': partes_excluidas,
+        'partes': partes_desativadas,
     }
     return render(request, 'qualidade/lixeira_partes.html', context)

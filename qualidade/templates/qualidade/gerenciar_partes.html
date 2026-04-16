@@ -186,7 +186,7 @@
         <p style="color: #6b7280; margin-top: 5px;">Crie e gerencie as partes disponíveis para as fichas</p>
     </div>
     <div style="display: flex; gap: 10px;">
-        <a href="{% url 'lixeira_partes' %}" class="btn btn-danger">🗑️ Lixeira</a>
+        <a href="{% url 'lixeira_partes' %}" class="btn btn-danger">⚙️ Ver Inativas</a>
         <a href="{% url 'home' %}" class="btn btn-secondary">← Voltar</a>
     </div>
 </div>
@@ -225,23 +225,16 @@
             <div class="parte-info">
                 <div class="parte-nome">
                     {{ parte.nome }}
-                    {% if parte.ativo %}
                     <span class="parte-badge badge-ativo">✓ Ativa</span>
-                    {% else %}
-                    <span class="parte-badge badge-inativo">✕ Inativa</span>
-                    {% endif %}
-                </div>
-                <div class="parte-status">
-                    Ordem: {{ parte.ordem }}
                 </div>
             </div>
             
             <div class="parte-actions">
-                <form method="post" style="display:inline;" onsubmit="return confirm('Deseja mover esta parte para a lixeira?');">
+                <form method="post" style="display:inline;" onsubmit="return confirm('Deseja DESATIVAR esta parte? Ela não aparecerá mais para novos registros.');">
                     {% csrf_token %}
-                    <input type="hidden" name="acao" value="mover_lixeira">
+                    <input type="hidden" name="acao" value="ativar_desativar">
                     <input type="hidden" name="parte_id" value="{{ parte.id }}">
-                    <button type="submit" class="btn btn-danger">🗑️ Excluir</button>
+                    <button type="submit" class="btn btn-danger">🚫 Desativar</button>
                 </form>
             </div>
         </div>
