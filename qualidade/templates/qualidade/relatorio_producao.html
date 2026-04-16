@@ -303,12 +303,27 @@
                 <select name="parte_id" class="form-control-filtro">
                     <option value="">Todas as Partes</option>
                     {% for p in partes %}
-                    <option value="{{ p.id }}" {% if filtros.parte_id == p.id|stringformat:"s" %}selected{% endif %}>{{ p.nome }}</option>
+                    <option value="{{ p.id }}" {% if filtros.parte_id == p.id|stringformat:"s" %}selected{% endif %}>
+                        {{ p.nome }} {% if not p.ativo %}(Inativo){% endif %}
+                    </option>
                     {% endfor %}
                 </select>
+                
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    <input type="checkbox" 
+                        name="exibir_inativos" 
+                        id="exibir_inativos" 
+                        {% if filtros.exibir_inativos %}checked{% endif %}
+                        onchange="this.form.submit()"
+                        style="cursor: pointer; margin: 0; width: 14px; height: 14px;">
+                    
+                    <label for="exibir_inativos" style="margin: 0; cursor: pointer; white-space: nowrap; font-size: 12px; color: #6b7280; font-weight: normal;">
+                        Exibir Inativas
+                    </label>
+                </div>
             </div>
         </div>
-        <div style="text-align: right; margin-top: 10px;">
+        <div style="text-align: right; margin-top: 60px;">
             <a href="{% url 'relatorio_producao' %}" class="btn-limpar">Limpar Filtros</a>
             <button type="submit" class="btn-filtrar">🔍 Gerar Relatório</button>
         </div>
@@ -426,3 +441,4 @@
 </div>
 {% endif %}
 {% endblock %}
+
