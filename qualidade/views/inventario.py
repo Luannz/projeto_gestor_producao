@@ -114,6 +114,9 @@ def editar_ficha_inventario(request, ficha_id):
             quantidade_pe_esquerdo=quantidade_pe_esquerdo,
         )
 
+        # Atualiza a data de atualização da ficha para ordenar por última modificação
+        FichaInventario.objects.filter(id=ficha.id).update(atualizada_em=timezone.now())
+
         # REGISTRO NO HISTÓRICO
         # Registra a entrada do Pé Direito
         if quantidade_pe_direito > 0:
@@ -305,6 +308,8 @@ def remover_item_inventario(request, item_id):
     # 4. DELEÇÃO SEGURA: Usamos o QuerySet para evitar o erro de 'id is None'
     item.delete()
 
+    FichaInventario.objects.filter(id=ficha_id).update(atualizada_em=timezone.now())
+
     messages.success(request, f"Item {info_item} removido com sucesso!")
     return redirect("editar_ficha_inventario", ficha_id=ficha_id)
 
@@ -376,6 +381,10 @@ def atualizar_quantidade_item(request, item_id):
         return redirect("editar_ficha_inventario", ficha_id=item.ficha.id)
 
     item.save()
+
+    # Atualiza apenas o timestamp da ficha pai
+    FichaInventario.objects.filter(id=item.ficha.id).update(atualizada_em=timezone.now())
+
 
     # 1. Captura os filtros que vieram do formulário
     f_modelo = request.POST.get("f_modelo", "")

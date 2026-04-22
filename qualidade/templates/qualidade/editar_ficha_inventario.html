@@ -415,9 +415,11 @@
                 <th>Cor</th>
                 <th>Tamanho</th>
                 <th>Quantidade</th>
+                {% comment %}
                 {% if pode_editar %}
                 <th style="text-align: center;">Ações</th>
                 {% endif %}
+                {% endcomment %}
             </tr>
         </thead>
         <tbody>
@@ -532,6 +534,7 @@
                         </div>
                         {% endif %}
                         </td>
+                        {% comment %}
                         {% if pode_editar %}
                         <td data-label="Ações" style="text-align: center;">
                             <form method="post" action="{% url 'remover_item_inventario' item.id %}" style="display:inline;">
@@ -541,7 +544,8 @@
                                 </button>
                             </form>
                         </td>
-                    {% endif %}
+                        {% endif %}
+                        {% endcomment %}
                 </tr>
                 {% endfor %}
             {% else %}

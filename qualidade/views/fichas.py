@@ -55,11 +55,11 @@ def home(request):
         if perfil.tipo == "operador":
             fichas_inventario = FichaInventario.objects.filter(
                 operador=request.user,excluido=False
-            ).order_by("-data")
+            ).order_by("-atualizada_em","-data")
         else:
             fichas_inventario = FichaInventario.objects.filter(
                 excluido=False
-            ).order_by("-data")
+            ).order_by("-atualizada_em","-data")
     else:
         fichas_inventario = None  # não mostra inventário
     #--Filtro de Data--#    
