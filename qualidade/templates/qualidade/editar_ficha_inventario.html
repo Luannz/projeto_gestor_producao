@@ -227,6 +227,66 @@
         td { text-align: left; position: relative; padding-left: 50%; }
         td:before { content: attr(data-label); font-weight: bold; color: #6b7280; }
     }
+
+    @media screen and (max-width: 900px) {
+    
+    /* Reduzimos o padding da tabela inteira para ganhar fôlego lateral */
+    td, th {
+        padding: 10px 5px;
+    }
+
+    /* 1. Ajuste na célula específica de Quantidade */
+    td[data-label="Quantidade"] {
+        min-width: 110px; 
+    }
+
+    /* 2. Empilhamos PE e PD verticalmente apenas se a tela for estreita */
+    .quantity-controls-wrapper {
+        display: flex;
+        flex-direction: column; 
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* 3. Mantemos os controles internos (botões e input) em linha, mas compactos */
+    .quantity-controls {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 2px;
+    }
+
+    /* 4. Escondemos ou diminuímos o divisor para não ocupar altura desnecessária */
+    .feet-divider {
+        width: 80%;
+        height: 1px;
+        background: #e5e7eb;
+        margin: 2px auto;
+    }
+
+    /* 5. Ajuste fino nos tamanhos para não "estourar" a largura da célula */
+    .btn-qty {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+    }
+
+    .quantity-input {
+        width: 32px;
+        font-size: 13px;
+        margin: 0;
+    }
+
+    .current-quantity {
+        font-size: 14px;
+        min-width: 20px;
+    }
+
+    .foot-label {
+        font-size: 11px;
+        margin-right: 2px;
+    }
+}
 </style>
 
 <div class="ficha-header-info">
