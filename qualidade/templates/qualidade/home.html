@@ -53,6 +53,7 @@
         justify-content: space-between;
         align-items: start;
         margin-bottom: 15px;
+        gap: 15px; /* Adiciona um espaço mínimo entre o título e o badge */
     }
     
     .ficha-title {
@@ -60,6 +61,8 @@
         font-weight: 700;
         color: #111827;
         margin-bottom: 5px;
+        flex: 1; 
+        word-break: break-word; /* Garante que nomes muito longos quebrem corretamente */
     }
     
     .ficha-badge {
@@ -69,6 +72,9 @@
         border-radius: 20px;
         font-size: 12px;
         font-weight: 600;
+        white-space: nowrap; /* Impede que o texto "X partes" quebre linha */
+        flex-shrink: 0;      /* Impede que o badge seja espremido pelo título largo */
+        align-self: start;   /* Garante que ele fique no topo mesmo se o título crescer */
     }
     
     .ficha-info {
