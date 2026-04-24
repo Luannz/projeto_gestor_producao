@@ -137,7 +137,7 @@ def criar_ficha(request):
     # --- OUTROS SETORES ---
     nomes_operador = NomeOperador.objects.filter(
         ativo=True, excluido=False
-    ).order_by('ordem', 'nome')
+    ).order_by('nome')
 
     if request.method == 'POST':
         data = request.POST.get('data')
