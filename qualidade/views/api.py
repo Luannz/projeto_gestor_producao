@@ -100,7 +100,10 @@ def adicionar_quantidade(request, ficha_id, parte_id):
     
     try:
         data = json.loads(request.body)
-        quantidade = int(data.get('quantidade', 0))
+        raw_quantidade = data.get('quantidade','0')
+        # Converte para string, troca vírgula por ponto e converte para float
+        # Isso aceita tanto "1.5" quanto "1,5"
+        quantidade = float(str(raw_quantidade).replace(',', '.'))
         
         if quantidade <= 0:
             return JsonResponse({'error': 'Quantidade deve ser maior que zero'}, status=400)

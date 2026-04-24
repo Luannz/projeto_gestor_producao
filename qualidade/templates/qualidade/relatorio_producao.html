@@ -333,13 +333,13 @@
 <div class="container-resumos">
     {% for parte, total in totais_por_parte.items %}
     <div class="card-resumo-parte">
-        <span class="valor">{{ total }}</span>
+        <span class="valor">{{ total|floatformat:"-1" }}</span>
         <span class="label">{{ parte }}</span>
     </div>
     {% endfor %}
     
     <div class="card-resumo-parte" style="background: rgba(118, 75, 162, 0.08); border-color: rgba(118, 75, 162, 0.2);">
-        <span class="valor" style="color: #764ba2;">{{ total_geral }}</span>
+        <span class="valor" style="color: #764ba2;">{{ total_geral|floatformat:"-1" }}</span>
         <span class="label" style="color: #764ba2;">Total Geral</span>
     </div>
 </div>
@@ -352,7 +352,7 @@
 <div class="resultado-card">
     <div class="resultado-header">
         <span style="font-size: 18px; font-weight: 600;">Resultados da Busca</span>
-        <span class="total-badge">Total: {{ total_geral }}</span>
+        <span class="total-badge">Total: {{ total_geral|floatformat:"-1" }}</span>
     </div>
     
     <div style="overflow-x: auto;">
@@ -374,7 +374,7 @@
                     <td><strong>{{ item.nome_ficha }}</strong></td>
                     <td>{{ item.parte }}</td>
                     <td style="text-align: right;">
-                        <span class="quantidade-valor">{{ item.quantidade }}</span>
+                        <span class="quantidade-valor">{{ item.quantidade|floatformat:"-1" }}</span>
                     </td>
                 </tr>
                 {% endfor %}
@@ -428,7 +428,9 @@
 {% endif %}
     <div class="footer-total">
         <span style="color: #6b7280; font-weight: 600;">TOTAL GERAL PRODUZIDO:</span>
-        <span style="font-size: 24px; color: #764ba2; font-weight: 800; margin-left: 15px;">{{ total_geral }}</span>
+        <span style="font-size: 24px; color: #764ba2; font-weight: 800; margin-left: 15px;">
+            {{ total_geral|floatformat:"-1" }}
+        </span>
     </div>
 </div>
 {% elif filtros.data_inicio %}

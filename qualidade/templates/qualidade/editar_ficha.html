@@ -314,7 +314,7 @@
                     </button>
                 </div>
                 <div class="parte-total" id="total-{{ registro.parte.id }}">
-                    Total: {{ registro.total }}
+                    Total: {{ registro.total|floatformat:"-1" }}
                 </div>
             </div>
             
@@ -322,7 +322,7 @@
                 {% if registro.quantidades %}
                     {% for qtd in registro.quantidades %}
                     <div class="quantidade-item">
-                        <span class="quantidade-valor">{{ qtd }}</span>
+                        <span class="quantidade-valor">{{ qtd|floatformat:"-1" }}</span>
                         <button class="btn-remove" onclick="removerQuantidade({{ registro.parte.id }})">✕</button>
                     </div>
                     {% endfor %}
@@ -339,8 +339,8 @@
                        id="input-{{ registro.parte.id }}"
                        placeholder="Digite a quantidade"
                        min="1"
-                       step="1"
-                       inputmode="numeric">
+                       step="any"
+                       inputmode="decimal">
                 <button type="button" class="btn-add" onclick="adicionarQuantidade({{ registro.parte.id }})">
                     ➕
                 </button>
@@ -482,12 +482,11 @@ function adicionarParteCard(parteId, parteNome) {
             
             <div class="input-group">
                 <input type="number" 
-                       class="quantidade-input" 
-                       id="input-${parteId}"
-                       placeholder="Digite a quantidade"
-                       min="1"
-                       step="1"
-                       inputmode="numeric">
+                    class="quantidade-input" 
+                    id="input-${parteId}"
+                    placeholder="0,00"
+                    step="0.01" 
+                    inputmode="decimal">
                 <button type="button" class="btn-add" onclick="adicionarQuantidade(${parteId})">
                     ➕
                 </button>
@@ -567,7 +566,7 @@ async function adicionarQuantidade(parteId) {
     }
     
     const input = document.getElementById(`input-${parteId}`);
-    const quantidade = parseInt(input.value);
+    const quantidade = parseFloat(input.value.replace(',', '.'));
     
     if (!quantidade || quantidade <= 0) {
         alert('Digite uma quantidade válida');
@@ -647,9 +646,13 @@ async function removerQuantidade(parteId) {
 function atualizarLista(parteId, quantidades, total) {
     const lista = document.getElementById(`lista-${parteId}`);
     const totalEl = document.getElementById(`total-${parteId}`);
+    const totalFormatado = Number(total).toLocaleString('pt-BR', {
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 1
+    });
     
     // Atualizar total
-    totalEl.textContent = `Total: ${total}`;
+    totalEl.textContent = `Total: ${totalFormatado}`;
     
     // Atualizar lista
     if (quantidades.length === 0) {
@@ -657,7 +660,7 @@ function atualizarLista(parteId, quantidades, total) {
     } else {
         lista.innerHTML = quantidades.map(qtd => `
             <div class="quantidade-item">
-                <span class="quantidade-valor">${qtd}</span>
+                <span class="quantidade-valor">${Number(qtd).toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 1})}</span>
                 <button class="btn-remove" onclick="removerQuantidade(${parteId})">✕</button>
             </div>
         `).join('');

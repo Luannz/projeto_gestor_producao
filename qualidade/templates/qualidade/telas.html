@@ -431,7 +431,7 @@
                 {% endif %}
             </div>
             <div class="total-geral-badge">
-                <span>TOTAL DO DIA: {{ total_dia }} peças</span>
+                <span>TOTAL DO DIA: {{ total_dia|floatformat:"-1" }} peças</span>
             </div>
             <div>
                 <a href="{% url 'home' %}" class="voltar-badge btn btn-secondary">← Voltar</a>
@@ -464,7 +464,7 @@
                 {% for parte_nome, quantidade in dados.partes.items %}
                 <div class="parte-item">
                     <div class="parte-nome">{{ parte_nome }}</div>
-                    <div class="parte-quantidade">{{ quantidade }}</div>
+                    <div class="parte-quantidade">{{ quantidade|floatformat:"-1" }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -476,7 +476,7 @@
             
             <div class="card-footer">
                 <div class="total-label">TOTAL</div>
-                <div class="total-valor">{{ dados.total }}</div>
+                <div class="total-valor">{{ dados.total|floatformat:"-1" }}</div>
             </div>
         </div>
         {% endfor %}
@@ -500,7 +500,7 @@
         // Preparar dados para o gráfico
         const dadosGrafico = {
             {% for nome_ficha, dados in dados_telao.items %}
-            '{{ dados.nome|escapejs }}': {{ dados.total }},
+            '{{ dados.nome|escapejs }}': {{ dados.total|stringformat:".2f" }},
             {% endfor %}
         };
 
@@ -576,7 +576,9 @@
                         cornerRadius: 8,
                         callbacks: {
                             label: function(context) {
-                                return context.parsed.y + ' peças';
+                                // Formata o número com vírgula no tooltip
+                                let valor = context.parsed.y;
+                                return valor.toLocaleString('pt-BR') + ' peças';
                             }
                         }
                     }
@@ -591,7 +593,8 @@
                             },
                             color: '#374151',
                             callback: function(value) {
-                                return value.toLocaleString('pt-BR');
+                                // Isso garante que os números na lateral do gráfico usem vírgula
+                            return value.toLocaleString('pt-BR');
                             }
                         },
                         grid: {
