@@ -60,8 +60,8 @@ def gerenciar_operadores(request):
         
         return redirect('gerenciar_operadores')
     
-    # Listar apenas partes NÃO EXCLUÍDAS
-    operadores = NomeOperador.objects.filter(excluido=False).order_by('ordem', 'nome')
+    # Listar apenas operadores NÃO EXCLUÍDOS
+    operadores = NomeOperador.objects.filter(excluido=False).order_by('nome')
     
     context = {
         'operadores': operadores,
@@ -101,7 +101,7 @@ def lixeira_operadores(request):
         
         return redirect('lixeira_operadores')
     
-    # Listar apenas partes EXCLUÍDAS
+    # Listar apenas operadores EXCLUÍDOS
     operadores_excluidos = NomeOperador.objects.filter(excluido=True).order_by('-excluido_em')
     
     context = {
