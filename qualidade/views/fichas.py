@@ -17,49 +17,56 @@ from ..models import Ficha, ParteCalcado, NomeOperador, FichaInventario, ItemInv
 @login_required
 def home(request):
     perfil = request.user.perfil
+    hoje = timezone.now().date()
     data_filtro = request.GET.get('data')
 
     # Grupo do usuário
+    is_qualidade = request.user.groups.filter(name='Qualidade').exists()
     grupo_usuario = request.user.groups.first()
     grupo_nome = grupo_usuario.name if grupo_usuario else None
 
-    # ----- FICHAS NORMAIS -----
-    fichas = Ficha.objects.filter(excluido=False).select_related(
+    # ----- 1. DEFINIÇÃO DO QUERYSET BASE (FICHAS NORMAIS) -----
+    fichas_queryset = Ficha.objects.filter(excluido=False).select_related(
         'operador'
     ).prefetch_related('registros')
 
-    # Operador só vê fichas do próprio setor
-    if perfil.tipo == 'operador':
-        if grupo_nome:
-            fichas = fichas.filter(setor=grupo_nome)
+    # ----- 2. APLICAR REGRAS DE VISIBILIDADE E DATA -----
+    if is_qualidade:
+        # Se for Qualidade: 
+        # - Se ele selecionou uma data no calendário, filtra por ela.
+        # - Se não selecionou nada, mostra TODAS (sem filtro de data).
+        if data_filtro:
+            fichas_queryset = fichas_queryset.filter(data=data_filtro)
+    else:
+        # Se NÃO for qualidade (Operadores, etc):
+        # - Forçamos uma data: ou a selecionada ou HOJE.
+        data_para_filtrar = data_filtro if data_filtro else hoje
+        fichas_queryset = fichas_queryset.filter(data=data_para_filtrar)
+
+        # - Restrição de dono: só vê o que ele mesmo criou
+        if grupo_nome == "Injetora":
+            fichas_queryset = Ficha.objects.none()
         else:
-            fichas = fichas.filter(operador=request.user)
-
-    # Injetora NÃO vê fichas normais
-    if grupo_nome == "Injetora":
-        fichas = Ficha.objects.none()
-
-    # Qualidade vê tudo → não filtra fichas
-
-    # Filtro por data
-    if data_filtro:
-        fichas = fichas.filter(data=data_filtro)
-
-    # Paginação
-    paginator = Paginator(fichas, 12)
-    page = request.GET.get("page")
-    fichas = paginator.get_page(page)
+            fichas_queryset = fichas_queryset.filter(operador=request.user)
+            
+            # Filtro opcional por setor
+            if grupo_nome and perfil.tipo == 'operador':
+                fichas_queryset = fichas_queryset.filter(setor=grupo_nome)
+    # 3. Paginação (Usando a variável correta: fichas_queryset)
+    paginator = Paginator(fichas_queryset, 12)
+    page_number = request.GET.get("page")
+    fichas_paginadas = paginator.get_page(page_number)
 
     # ----- FICHAS DE INVENTÁRIO -----
     if grupo_nome in ["Injetora", "Qualidade"]:
         if perfil.tipo == "operador":
             fichas_inventario = FichaInventario.objects.filter(
                 operador=request.user,excluido=False
-            ).order_by("-atualizada_em","-data")
+            ).order_by("-atualizada_em", "-data")
         else:
             fichas_inventario = FichaInventario.objects.filter(
                 excluido=False
-            ).order_by("-atualizada_em","-data")
+            ).order_by("-atualizada_em", "-data")
     else:
         fichas_inventario = None  # não mostra inventário
     #--Filtro de Data--#    
@@ -90,13 +97,14 @@ def home(request):
     context = {
         "perfil": perfil,
         "grupo_usuario": grupo_nome,
-        "fichas": fichas,
+        "fichas": fichas_paginadas,
         "fichas_inventario": fichas_inventario,
         "total_pares_geral": total_pares_geral,
         "total_avulsos_geral": total_avulsos_geral,
         "total_pares_absoluto": total_pares_absoluto,
-        "fichas_inventario": fichas_inventario,
-        "data_hoje": date.today(),
+        "is_qualidade": is_qualidade,
+        "data_atual": data_filtro if data_filtro else (None if is_qualidade else hoje),
+        "data_hoje": hoje,
     }
 
     return render(request, "qualidade/home.html", context)
