@@ -28,7 +28,7 @@ def home(request):
     # ----- 1. DEFINIÇÃO DO QUERYSET BASE (FICHAS NORMAIS) -----
     fichas_queryset = Ficha.objects.filter(excluido=False).select_related(
         'operador'
-    ).prefetch_related('registros').order_by('criada_em')
+    ).prefetch_related('registros').order_by('-criada_em')
 
     # ----- 2. APLICAR REGRAS DE VISIBILIDADE E DATA -----
     if is_qualidade:
