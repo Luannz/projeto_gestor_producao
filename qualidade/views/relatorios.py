@@ -73,7 +73,7 @@ def relatorio_producao(request):
             resultados.append({
                 'data': reg.ficha.data,
                 'perfil': reg.ficha.operador.get_full_name() or reg.ficha.operador.username,
-                'nome_ficha': reg.ficha.nome_ficha,
+                'nome_ficha': reg.ficha.nome_ficha.strip(), # .strip pra remover e evitar espaços extras
                 'parte': reg.parte.nome,
                 'quantidade': qtd_total_registro
             })
