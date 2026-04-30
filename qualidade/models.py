@@ -47,6 +47,13 @@ class Ficha(models.Model):
         ('qualidade', 'Qualidade'),
     ]
 
+    TIPO_CHOICES = [
+        ('producao', 'Produção'), # Para as fichas comuns (ou pode deixar NULL)
+        ('perdas', 'Perdas'),
+        ('reposicao', 'Reposição'),
+        ('amostra', 'Amostra'),
+    ]
+
     setor = models.CharField(max_length=25, blank=True, null=True, verbose_name="setor")
     operador = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fichas')
     data = models.DateField()
@@ -56,6 +63,7 @@ class Ficha(models.Model):
     excluido = models.BooleanField(default=False)
     excluido_em = models.DateTimeField(null=True, blank=True)
     excluido_por = models.ForeignKey(User,null=True,blank=True,on_delete=models.SET_NULL,related_name='fichas_excluidas')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=True, null=True, verbose_name="Tipo de Ficha")
 
     class Meta:
         verbose_name = 'Ficha'
