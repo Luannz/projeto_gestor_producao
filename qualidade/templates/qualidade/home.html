@@ -348,6 +348,7 @@
         margin-bottom: 20px;
         gap: 20px;
         flex-wrap: wrap;               /* Responsividade para telas menores */
+        width: 100%;
     }
 
     /* Estilo do Título */
@@ -370,6 +371,27 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap; /* Importante para os inputs dentro do form também quebrarem */
+        flex-grow: 1;    /* Faz o form tentar ocupar o espaço disponível */
+        justify-content: flex-end; /* No PC mantém na direita */
+    }
+
+    /* Ajuste específico para Telas Médias (Tablets) */
+    @media (max-width: 992px) {
+        .header-filtros-container {
+            flex-direction: column; /* Empilha Título e depois Form */
+            align-items: flex-start; /* Alinha tudo à esquerda */
+        }
+
+        .filtros-home {
+            justify-content: flex-start; /* Alinha filtros à esquerda no tablet */
+            width: 100%;
+        }
+
+        .input-estilizado {
+            flex: 1 1 150px; /* Faz os inputs crescerem e ocuparem o espaço disponível */
+            min-width: 0;    /* Evita que o input "estoure" o container */
+        }
     }
     /* Inputs e Selects */
     .input-estilizado {
