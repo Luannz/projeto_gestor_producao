@@ -32,16 +32,25 @@ def relatorio_producao(request):
     perfil_id = request.GET.get('perfil_id')    # ID do User (quem lançou)
     nome_ficha = request.GET.get('nome_ficha')  # Nome do operador da banca
     parte_id = request.GET.get('parte_id')      # ID da Parte (Sola, etc)
+    tipo_ficha = request.GET.get('tipo_ficha')    # Tipo da ficha (produção, reposição, amostra)
+    exibir_inativos = request.GET.get('exibir_inativos') == 'on' #botão para exibir inativos
 
     # Dados para carregar os selects do filtro
     todos_usuarios = User.objects.filter(groups__name='Corte').distinct().order_by('first_name') # só usuarios do grupo corte
-    todas_partes = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome')
+    
+    todas_partes = ParteCalcado.objects.filter(excluido=False).order_by('nome')
+    if not exibir_inativos:
+        # Se NÃO quer inativos, filtramos apenas as ativas
+        todas_partes = todas_partes.filter(ativo=True)
     # Nomes únicos de fichas cadastrados no sistema para o filtro
+    todas_partes = todas_partes.order_by('-ativo', '-ordem', 'nome')
+    
     nomes_fichas_unicos = Ficha.objects.filter(excluido=False).values_list('nome_ficha', flat=True).distinct().order_by('nome_ficha')
 
     resultados = []
     totais_por_parte = {}
-    total_geral = 0
+    total_geral = 0.0
+    total_perdas = 0.0
 
     # 2. Lógica de Busca (Só executa se houver datas)
     if data_inicio and data_fim:
@@ -56,7 +65,8 @@ def relatorio_producao(request):
             fichas = fichas.filter(operador_id=perfil_id)
         if nome_ficha:
             fichas = fichas.filter(nome_ficha=nome_ficha)
-
+        if tipo_ficha:
+            fichas = fichas.filter(tipo=tipo_ficha)
         # Buscar os registros de partes dessas fichas
         # Usamos prefetch_related para não travar o banco com muitas queries
         registros = RegistroParte.objects.filter(ficha__in=fichas).select_related('ficha', 'parte', 'ficha__operador')
@@ -67,23 +77,34 @@ def relatorio_producao(request):
         # 3. Organização dos dados para o Template
         # Queremos mostrar: Data | Nome Ficha | Parte | Quantidade (Soma do JSON)
         for reg in registros:
-            qtd_total_registro = reg.total() # Usa o método que já tem no model
-            nome_parte = reg.parte.nome
+            qtd = float(reg.total())
+            tipo = reg.ficha.tipo
             
+            # 1. SEPARAÇÃO: Se for perda, soma no pote de perdas e PULA o resto da soma
+            if tipo == 'perdas': 
+                total_perdas += qtd
+                # Se você quer que a perda NÃO apareça na tabela de produção e nem no total geral,
+                # você deve decidir se quer dar um 'continue' aqui ou apenas não somar no total_geral.
+            
+            # Aqui montamos o objeto para a tabela (resultados)
             resultados.append({
                 'data': reg.ficha.data,
                 'perfil': reg.ficha.operador.get_full_name() or reg.ficha.operador.username,
-                'nome_ficha': reg.ficha.nome_ficha.strip(), # .strip pra remover e evitar espaços extras
+                'nome_ficha': reg.ficha.nome_ficha.strip(),
+                'tipo': tipo,
                 'parte': reg.parte.nome,
-                'quantidade': qtd_total_registro
+                'quantidade': qtd
             })
 
-            if nome_parte in totais_por_parte:
-                totais_por_parte[nome_parte] += qtd_total_registro
-            else:
-                totais_por_parte[nome_parte] = qtd_total_registro
+            # 2. LÓGICA DE EXCLUSÃO: Só soma no total geral se NÃO for perda
+            if tipo != 'perdas':
+                nome_parte = reg.parte.nome
+                if nome_parte in totais_por_parte:
+                    totais_por_parte[nome_parte] += qtd
+                else:
+                    totais_por_parte[nome_parte] = qtd
 
-            total_geral += qtd_total_registro
+                total_geral += qtd
 
         # Ordenar resultados por data
         resultados.sort(key=lambda x: (x['parte'], x['data']))
@@ -97,6 +118,7 @@ def relatorio_producao(request):
 
     context = {
         'page_obj': page_obj,
+        'total_perdas': total_perdas,
         'totais_por_parte': totais_por_parte,
         'total_geral': total_geral,
         'usuarios': todos_usuarios,
@@ -279,6 +301,7 @@ def gerar_pdf_producao(request):
     perfil_id = request.GET.get('perfil_id')
     nome_ficha = request.GET.get('nome_ficha')
     parte_id = request.GET.get('parte_id')
+    tipo_ficha = request.GET.get('tipo_ficha') #filtro de tipo novo
 
     if not data_inicio or not data_fim:
         return HttpResponse('Selecione um período.')
@@ -289,6 +312,8 @@ def gerar_pdf_producao(request):
         fichas = fichas.filter(operador_id=perfil_id)
     if nome_ficha:
         fichas = fichas.filter(nome_ficha=nome_ficha)
+    if tipo_ficha:
+        fichas = fichas.filter(tipo=tipo_ficha)
 
     registros = RegistroParte.objects.filter(ficha__in=fichas).select_related('ficha', 'parte', 'ficha__operador')
     if parte_id:
@@ -296,22 +321,27 @@ def gerar_pdf_producao(request):
 
     # 3. Cálculo de Totais (A lógica que adicionamos agora)
     totais_por_parte = {}
-    total_geral = 0
+    total_geral = 0.0
+    total_perdas = 0.0
     dados_para_tabela = []
 
     for reg in registros:
-        qtd = reg.total()
+        qtd = float(reg.total())
+        tipo = reg.ficha.tipo
         nome_parte = reg.parte.nome
         
-        # Acumula para o resumo
-        totais_por_parte[nome_parte] = totais_por_parte.get(nome_parte, 0) + qtd
-        total_geral += qtd
+        #separação de perda vs produção
+        if tipo == 'perdas':
+            total_perdas += qtd
+        else:
+            totais_por_parte[nome_parte] = totais_por_parte.get(nome_parte, 0) + qtd
+            total_geral += qtd
         
         # Guarda para a tabela
         dados_para_tabela.append(reg)
 
     # Ordenar dados da tabela por data
-    dados_para_tabela.sort(key=lambda x: x.ficha.data)
+    dados_para_tabela.sort(key=lambda x: (x.ficha.data, x.parte.nome))
 
     # 4. Configuração do ReportLab
     response = HttpResponse(content_type='application/pdf')
@@ -321,7 +351,7 @@ def gerar_pdf_producao(request):
     largura, altura = A4
     y = altura - 2 * cm
 
-    # Título e Período
+    # Cabeçalho
     p.setFont("Helvetica-Bold", 16)
     p.setFillColor(colors.HexColor("#111827"))
     p.drawString(2 * cm, y, "Relatório de Produção Detalhado")
@@ -331,86 +361,134 @@ def gerar_pdf_producao(request):
     
     y -= 1.8 * cm
 
-    # --- SEÇÃO DE RESUMO (OS CARDS NO PDF) ---
+    # --- SEÇÃO DE RESUMO ---
     p.setFont("Helvetica-Bold", 10)
     p.setFillColor(colors.HexColor("#374151"))
-    p.drawString(2 * cm, y, "Resumo por Parte:")
+    p.drawString(2 * cm, y, "Resumo de Produção:")
     y -= 0.6 * cm
 
-    # Desenhar pequenos "cards" de resumo
     x_offset = 2 * cm
     for parte, total in totais_por_parte.items():
-        # Desenha um retângulo sutil de fundo
         p.setStrokeColor(colors.HexColor("#e5e7eb"))
         p.setFillColor(colors.HexColor("#f9fafb"))
         p.roundRect(x_offset, y - 1 * cm, 3.5 * cm, 1.2 * cm, 4, fill=1)
         
-        # Texto do Total
         p.setFillColor(colors.HexColor("#667eea"))
-        p.setFont("Helvetica-Bold", 12)
-        p.drawString(x_offset + 0.3 * cm, y - 0.3 * cm, str(total))
+        p.setFont("Helvetica-Bold", 11)
+        # Usando format para garantir vírgula e decimais
+        p.drawString(x_offset + 0.3 * cm, y - 0.3 * cm, f"{total:,.1f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
         
-        # Texto da Parte
         p.setFillColor(colors.HexColor("#6b7280"))
         p.setFont("Helvetica", 7)
-        p.drawString(x_offset + 0.3 * cm, y - 0.80 * cm, parte.upper())
+        p.drawString(x_offset + 0.3 * cm, y - 0.85 * cm, parte.upper())
         
-        x_offset += 3.8 * cm # Move para o lado para o próximo card
-        
-        # Se ultrapassar a largura da página, pula linha
+        x_offset += 3.8 * cm
         if x_offset > largura - 5 * cm:
             x_offset = 2 * cm
             y -= 1.5 * cm
 
-    y -= 1.5 * cm
+    # Card de Perdas (Destaque em Vermelho)
+    if total_perdas:
+        if x_offset > largura - 5 * cm: # Garante que não quebre o layout
+            x_offset = 2 * cm
+            y -= 1.5 * cm
+        p.setStrokeColor(colors.HexColor("#fca5a5"))
+        p.setFillColor(colors.HexColor("#fef2f2"))
+        p.roundRect(x_offset, y - 1 * cm, 3.5 * cm, 1.2 * cm, 4, fill=1)
+        p.setFillColor(colors.HexColor("#dc2626"))
+        p.setFont("Helvetica-Bold", 11)
+        p.drawString(x_offset + 0.3 * cm, y - 0.3 * cm, f"{total_perdas:,.1f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+        p.setFont("Helvetica-Bold", 7)
+        p.drawString(x_offset + 0.3 * cm, y - 0.85 * cm, "TOTAL PERDAS")
+
+    y -= 1.8 * cm
     p.setStrokeColor(colors.HexColor("#e5e7eb"))
     p.line(2 * cm, y, largura - 2 * cm, y)
 
-    # --- TABELA DE REGISTROS ---
+    # --- CABEÇALHO DA TABELA ---
     y -= 0.8 * cm
-    p.setFont("Helvetica-Bold", 9)
+    p.setFont("Helvetica-Bold", 8)
     p.setFillColor(colors.HexColor("#374151"))
     p.drawString(2 * cm, y, "DATA")
-    p.drawString(4.5 * cm, y, "LANÇADO POR")
-    p.drawString(9 * cm, y, "OPERADOR (FICHA)")
-    p.drawString(14 * cm, y, "PARTE")
+    p.drawString(4.2 * cm, y, "TIPO")
+    p.drawString(6.5 * cm, y, "LANÇADO POR")      # Ajustado
+    p.drawString(10.2 * cm, y, "OPERADOR (FICHA)") # Ajustado
+    p.drawString(14.8 * cm, y, "PARTE")           # Ajustado
     p.drawRightString(largura - 2 * cm, y, "QTD")
     
     y -= 0.3 * cm
     p.line(2 * cm, y, largura - 2 * cm, y)
     y -= 0.6 * cm
 
-    p.setFont("Helvetica", 9)
+    # --- LINHAS DA TABELA ---
     for reg in dados_para_tabela:
         if y < 3 * cm:
             p.showPage()
             y = altura - 2 * cm
-            p.setFont("Helvetica", 9)
+            p.setFont("Helvetica", 8)
 
-        qtd = reg.total()
+        qtd = float(reg.total())
+        tipo = reg.ficha.tipo or "N/D"
         perfil_nome = reg.ficha.operador.get_full_name() or reg.ficha.operador.username
 
-        p.setFillColor(colors.black)
+        # --- LÓGICA DE PINTAR O FUNDO DA LINHA ---
+        # Desenha um retângulo antes do texto para servir de fundo
+        if tipo == 'amostra':
+            p.setFillColor(colors.HexColor("#fffbeb")) # Amarelo sutil
+            p.rect(2 * cm, y - 0.15 * cm, largura - 4 * cm, 0.5 * cm, fill=1, stroke=0)
+            tipo_label = "AMOSTRA"
+            cor_texto = colors.HexColor("#422006")
+        elif tipo == 'reposicao':
+            p.setFillColor(colors.HexColor("#fff7ed")) # Laranja sutil
+            p.rect(2 * cm, y - 0.15 * cm, largura - 4 * cm, 0.5 * cm, fill=1, stroke=0)
+            tipo_label = "REPOSIÇÃO"
+            cor_texto = colors.HexColor("#422006")
+        elif tipo == 'perdas':
+            p.setFillColor(colors.HexColor("#fef2f2")) # Vermelho sutil
+            p.rect(2 * cm, y - 0.15 * cm, largura - 4 * cm, 0.5 * cm, fill=1, stroke=0)
+            tipo_label = "PERDA"
+            cor_texto = colors.HexColor("#dc2626")
+        else:
+            tipo_label = "PRODUÇÃO"
+            cor_texto = colors.black
+
+        # --- ESCRITA DOS TEXTOS ---
+        p.setFillColor(cor_texto)
+        p.setFont("Helvetica", 8)
+        
+        # 1. DATA (Mantido em 2 cm)
         p.drawString(2 * cm, y, reg.ficha.data.strftime('%d/%m/%Y'))
-        p.drawString(4.5 * cm, y, str(perfil_nome)[:20])
-        p.setFont("Helvetica-Bold", 9)
-        p.drawString(9 * cm, y, str(reg.ficha.nome_ficha)[:25])
-        p.setFont("Helvetica", 9)
-        p.drawString(14 * cm, y, str(reg.parte.nome)[:20])
         
-        p.setFillColor(colors.HexColor("#667eea"))
-        p.drawRightString(largura - 2 * cm, y, str(qtd))
+        # 2. TIPO (Mantido em 4.2 cm)
+        p.setFont("Helvetica-Bold", 8)
+        p.drawString(4.2 * cm, y, tipo_label)
         
-        y -= 0.6 * cm
+        # 3. LANÇADO POR (Empurrado de 5.5 cm para 6.2 cm)
+        p.setFont("Helvetica", 8)
+        p.drawString(6.5 * cm, y, str(perfil_nome)[:20])
+        
+        # 4. OPERADOR/FICHA (Empurrado de 9.5 cm para 10.2 cm)
+        p.setFont("Helvetica-Bold", 8)
+        p.drawString(10.2 * cm, y, str(reg.ficha.nome_ficha)[:22])
+        
+        # 5. PARTE (Ajustado para 14.8 cm)
+        p.setFont("Helvetica", 8)
+        p.drawString(14.8 * cm, y, str(reg.parte.nome)[:15])
+        
+        # 6. QTD (Mantido à direita)
+        p.drawRightString(largura - 2 * cm, y, f"{qtd:,.1f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+        
+        y -= 0.5 * cm # Espaçamento entre linhas
 
     # Rodapé Final
-    y -= 0.5 * cm
+    y -= 1 * cm
     p.setStrokeColor(colors.HexColor("#764ba2"))
     p.line(largura - 7 * cm, y + 0.3 * cm, largura - 2 * cm, y + 0.3 * cm)
-    p.setFont("Helvetica-Bold", 12)
+    p.setFont("Helvetica-Bold", 11)
     p.setFillColor(colors.HexColor("#764ba2"))
-    p.drawString(largura - 8 * cm, y - 0.2 * cm, "TOTAL GERAL:")
-    p.drawRightString(largura - 2 * cm, y - 0.2 * cm, str(total_geral))
+    p.drawString(largura - 9 * cm, y - 0.2 * cm, "PRODUÇÃO TOTAL:")
+    total_formatado = f"{total_geral:,.1f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    p.drawRightString(largura - 2 * cm, y - 0.2 * cm, total_formatado)
 
     p.showPage()
     p.save()

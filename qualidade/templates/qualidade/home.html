@@ -13,19 +13,6 @@
         gap: 15px;
     }
     
-    .filter-form {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-    }
-    
-    .filter-input {
-        padding: 10px 15px;
-        border: 2px solid #e5e7eb;
-        border-radius: 10px;
-        font-size: 16px;
-    }
-    
     .fichas-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -34,8 +21,10 @@
     }
     
     .ficha-card {
+        position: relative; /* Necessário para posicionar a faixa */
+        overflow: hidden;
         background: white;
-        border: 2px solid #e5e7eb;
+        border: 2px solid #cacaca;
         border-radius: 15px;
         padding: 25px;
         transition: all 0.3s;
@@ -66,12 +55,18 @@
     }
     
     .ficha-badge {
-        background: #667eea;
-        color: white;
-        padding: 5px 12px;
-        border-radius: 20px;
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 6px;
         font-size: 12px;
         font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+        background-color: #667eea; /* Azul clarinho */
+        color: white; /* Azul escuro */
+        border: 1px solid;
+
         white-space: nowrap; /* Impede que o texto "X partes" quebre linha */
         flex-shrink: 0;      /* Impede que o badge seja espremido pelo título largo */
         align-self: start;   /* Garante que ele fique no topo mesmo se o título crescer */
@@ -85,15 +80,56 @@
     
     .ficha-actions {
         display: flex;
-        gap: 10px;
+        gap: 8px;
         margin-top: 15px;
+        align-items: center;
+        flex-wrap: nowrap !important;
     }
     
     .btn-small {
-        padding: 8px 16px;
-        font-size: 14px;
+        padding: 6px 12px;
+        font-size: 13px;
+        white-space: nowrap; /* Impede o texto de quebrar dentro do botão */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+    }
+
+    .btn-ver-discreto {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        color: #4b5563; /* Cinza sóbrio */
+        transition: all 0.2s;
+    }
+    .btn-ver-discreto:hover {
+        background: #e5e7eb;
+    }
+
+    .btn-pdf-discreto {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        color: #4b5563; /* Cinza sóbrio */
+        transition: all 0.2s;
+    }
+    .btn-pdf-discreto:hover {
+        background: #f0fdf4 !important;
+        border-color: #166534 !important;
     }
     
+    /* Botão Excluir - Minimalista */
+    .btn-delete-minimal {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        color: #4b5563; /* Cinza sóbrio */
+        transition: all 0.2s;
+    }
+    .btn-delete-minimal:hover {
+        color: #dc2626 !important; /* Fica vermelho no hover */
+        border-color: #f78484 !important;
+        background: #fef2f2 !important;
+    }
+
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -144,14 +180,6 @@
         .action-bar {
             flex-direction: column;
             align-items: stretch;
-        }
-        
-        .filter-form {
-            flex-direction: column;
-        }
-        
-        .filter-input {
-            width: 100%;
         }
     }
 
@@ -209,6 +237,181 @@
         border-left: 6px solid #b1ad7e !important; /* Força a cor verde */        
         cursor: default !important;
     }
+
+    .borda-amostra {
+        /* background amarelado sutil (o 1a no final é a transparência) */
+        background-color: #fef08a1a !important; 
+    }
+
+    .borda-amostra:hover {
+        /* Escurece o fundo levemente quando passa o mouse */
+        background-color: #fef08a33 !important;
+    }
+
+    .borda-perda {
+        /* background vermelho sutil (o 1a no final é a transparência) */
+        background-color: #fe8a8a1a !important; 
+    }
+
+    .borda-perda:hover {
+        /* Escurece o fundo levemente quando passa o mouse */
+        background-color: #fe8a8a33 !important;
+    }
+
+    /* Garante que as outras mantenham o fundo branco */
+    .borda-mapa-producao {
+        background-color: white !important;
+    }
+
+    .borda-amostra::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 8px; /* Largura da faixinha */
+        background-color: #fef08a; /* Amarelo Post-it */
+    }
+
+    .borda-perda::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 8px; /* Largura da faixinha */
+        background-color: #fe8a8a; /* Vermelho Post-it */
+    }
+
+    .borda-mapa-producao::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 8px;
+        background: linear-gradient(
+            to bottom, 
+            #f3f4f6 20%, 
+            #d1d5db 20% 40%, 
+            #86efac 40% 60%, 
+            #fca5a5 60% 80%, 
+            #93c5fd 80%
+        );
+    }
+
+    /* Ajuste para não bugar o hover */
+    .ficha-card.borda-mapa-producao:hover, 
+    .ficha-card.borda-amostra:hover {
+        border-top-color: #667eea;
+        border-right-color: #667eea;
+        border-bottom-color: #667eea;
+    }
+
+    /* Estilo base para as etiquetas de tipo */
+    .badge-tipo {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    /* Cores específicas para cada tipo */
+    .badge-amostra {
+        color: #854d0e; /* Marrom escuro para contraste */
+        border: 2px solid #facc15;
+    }
+
+    .badge-producao {
+        color: #3730a3; /* Azul escuro */
+        border: 2px solid #c7d2fe;
+    }
+
+    .badge-reposicao {
+        color: #9a3412; /* Laranja escuro */
+        border: 2px solid #fed7aa;
+    }
+    .badge-perdas {
+        color: #b91c1c; /* Vermelho escuro */
+        border: 2px solid #fecaca;
+    }
+
+    /* Container que segura o título e os filtros na mesma linha */
+    .header-filtros-container {
+        display: flex;
+        justify-content: space-between; /* Empurra o form para a direita */
+        align-items: center;            /* Alinha verticalmente no centro */
+        margin-bottom: 20px;
+        gap: 20px;
+        flex-wrap: wrap;               /* Responsividade para telas menores */
+    }
+
+    /* Estilo do Título */
+    .titulo-fichas {
+        font-size: 22px;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;                     /* Remove margens padrão */
+    }
+    .barra-decorativa {
+        width: 4px;
+        height: 20px;
+        background: #667eea;
+        border-radius: 2px;
+    }
+    /* Formulário de Filtros */
+    .filtros-home {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    /* Inputs e Selects */
+    .input-estilizado {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #374151;
+        background-color: #fff;
+        transition: border-color 0.2s;
+    }
+    .input-estilizado:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+    /* Botão Filtrar */
+    .btn-filtrar {
+        background-color: #667eea;
+        color: white;
+        padding: 7px 15px;
+        border-radius: 6px;
+        border: none;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .btn-filtrar:hover {
+        background-color: #5a67d8;
+    }
+    /* Botão Limpar */
+    .btn-limpar {
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 13px;
+        padding: 0 5px;
+        transition: color 0.2s;
+    }
+    .btn-limpar:hover {
+        color: #374151;
+        text-decoration: underline;
+    }
 </style>
 
 {% if perfil.tipo == 'qualidade' %}
@@ -219,62 +422,99 @@
     </div>
 {% endif %}
 
-<div class="action-bar">
-    <div>
-        <h2 style="font-size: 28px; color: #111827; margin-bottom: 5px;">
-            {% if perfil.tipo == 'operador' %}
-                Minhas Fichas
-            {% else %}
-                Todas as Fichas
-            {% endif %}
-        </h2>
-        <p style="color: #6b7280;">Gerencie as fichas de produção </p>
-    </div>
+<div class="action-bar" style="display: flex; justify-content: space-between; align-items: flex-start;">
     
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        {% if perfil.tipo == 'operador' %}
-        <a href="{% url 'criar_ficha' %}" class="btn btn-primary">
-            ➕ Nova Ficha
-        </a>
-        {% else %}
-        <div class="admin-group">
-            <a href="{% url 'relatorio_producao' %}" class="btn-admin">📊 Relatórios</a>
-            <a href="{% url 'gerenciar_partes' %}" class="btn-admin">🔧 Partes</a>
-            <a href="{% url 'gerenciar_operadores' %}" class="btn-admin">👤 Operadores</a>
-            <a href="{% url 'gerenciar_modelos' %}" class="btn-admin">👟 Modelos</a>
-            <a href="{% url 'telas' %}" class="btn-admin">🖥️ Telas</a>
-            <a href="{% url 'lixeira_fichas' %}" class="btn-admin btn-admin-danger">🗑️ Lixeira</a>
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+        <div>
+            <h2 style="font-size: 28px; color: #111827; margin-bottom: 5px;">
+                {% if perfil.tipo == 'operador' %}
+                    Minhas Fichas
+                {% else %}
+                    Todas as Fichas
+                {% endif %}
+            </h2>
+            <p style="color: #6b7280;">Gerencie as fichas de produção</p>
         </div>
-        
+
+        {% if perfil.tipo != 'operador' %}
+            <div class="admin-group">
+                <a href="{% url 'relatorio_producao' %}" class="btn-admin">📊 Relatórios</a>
+                <a href="{% url 'gerenciar_partes' %}" class="btn-admin">🔧 Partes</a>
+                <a href="{% url 'gerenciar_operadores' %}" class="btn-admin">👤 Operadores</a>
+                <a href="{% url 'gerenciar_modelos' %}" class="btn-admin">👟 Modelos</a>
+                <a href="{% url 'telas' %}" class="btn-admin">🖥️ Telas</a>
+                <a href="{% url 'lixeira_fichas' %}" class="btn-admin btn-admin-danger">🗑️ Lixeira</a>
+            </div>
         {% endif %}
-        
-        <form method="get" class="filter-form">
-            <input type="date" 
-                   name="data" 
-                   class="filter-input"
-                   value="{{ request.GET.data }}"
-                   max="{{ data_hoje|date:'Y-m-d' }}">
-            <button type="submit" class="btn btn-secondary">Filtrar</button>
-            {% if request.GET.data %}
-            <a href="{% url 'home' %}" class="btn btn-secondary">Limpar</a>
-            {% endif %}
-        </form>
+    </div>
+
+    <div>
+        {% if perfil.tipo == 'operador' %}
+            <a href="{% url 'criar_ficha' %}" class="btn btn-primary">
+                ➕ Nova Ficha
+            </a>
+        {% endif %}
     </div>
 </div>
 
 <div id="secao-producao">
-    {% if fichas %}
+    <div class="action-bar" style="margin-bottom: 0;">
+        {% if perfil.tipo == 'qualidade' %}
+        <a href="{% url 'criar_ficha' %}" class="btn btn-primary">
+            ➕ Criar ficha de Perdas
+        </a>
+        {% endif %}
+    </div>
+    {# 1. Verificamos se há fichas OU se algum filtro foi enviado na URL #}
+{% if fichas or request.GET.p_nome or request.GET.p_tipo or request.GET.p_data %}
     <hr style="margin: 40px 0;">
 
-    <h2 style="font-size: 22px; margin-bottom: 15px; color:#111827; display: flex; align-items: center; gap: 10px;">
-        <span style="width: 4px; height: 20px; background: #667eea; border-radius: 2px;"></span>
-        Fichas de Produção
-    </h2>
+    <div class="header-filtros-container">
+        <h2 class="titulo-fichas">
+            <span class="barra-decorativa"></span>
+            Fichas de Produção
+        </h2>
+
+        <form method="GET" action="{% url 'home' %}" class="filtros-home">
+            <input type="date" name="p_data" value="{{ request.GET.p_data }}" class="input-estilizado">
+
+            <input type="text" name="p_nome" placeholder="Buscar por nome..." value="{{ nome_filtro|default:'' }}" class="input-estilizado">
+
+            <select name="p_tipo" class="input-estilizado">
+                <option value="">Todos os tipos</option>
+                <option value="producao" {% if tipo_filtro == 'producao' %}selected{% endif %}>Produção</option>
+                <option value="amostra" {% if tipo_filtro == 'amostra' %}selected{% endif %}>Amostra</option>
+                <option value="reposicao" {% if tipo_filtro == 'reposicao' %}selected{% endif %}>Reposição</option>
+                {% if perfil.tipo == 'qualidade' %}
+                    <option value="perdas" {% if tipo_filtro == 'perdas' %}selected{% endif %}>Perda</option>
+                {% endif %}
+            </select>
+
+            <button type="submit" class="btn-filtrar">Filtrar</button>
+            <a href="{% url 'home' %}" class="btn-limpar">Limpar</a>
+        </form>
+    </div>
     <div class="fichas-grid">
         {% for ficha in fichas %}
-        <div class="ficha-card">
+        <div class="ficha-card 
+            {% if ficha.tipo == 'amostra' %}
+                borda-amostra
+            {% elif ficha.tipo == 'producao' or ficha.tipo == 'reposicao' %}
+                borda-mapa-producao
+            {% elif ficha.tipo == 'perdas' %}
+                borda-perda
+            {% endif %}">
             <div class="ficha-header">
                 <div>
+                    {% if ficha.tipo == 'amostra' %}
+                        <span class="badge-tipo badge-amostra">Amostra</span>
+                    {% elif ficha.tipo == 'reposicao' %}
+                        <span class="badge-tipo badge-reposicao">Reposição</span>
+                    {% elif ficha.tipo == 'perdas' %}
+                        <span class="badge-tipo badge-perdas">Perdas</span>
+                    {% else %}
+                        <span class="badge-tipo badge-producao">Produção</span>
+                    {% endif %}
                     <div class="ficha-title">{{ ficha.nome_ficha }}</div>
                     <div class="ficha-info">
                         📅 {{ ficha.data|date:"d/m/Y" }}<br>
@@ -288,18 +528,18 @@
             </div>
             
             <div class="ficha-actions">
-                {% if perfil.tipo == 'operador' and ficha.operador == user %}
-                <a href="{% url 'editar_ficha' ficha.id %}" class="btn btn-primary btn-small">✏️ Editar</a>
+                {% if perfil.tipo == 'operador' and ficha.operador == user or perfil.tipo == 'qualidade' and ficha.setor == 'Qualidade' %}
+                    <a href="{% url 'editar_ficha' ficha.id %}" class="btn btn-primary btn-small">✏️ Editar</a>
                 {% endif %}
                 
-                <a href="{% url 'visualizar_ficha' ficha.id %}" class="btn btn-secondary btn-small">👁️ Ver</a>
+                <a href="{% url 'visualizar_ficha' ficha.id %}" class="btn btn-ver-discreto btn-small">👁️ Ver</a>
                 
                 {% if perfil.tipo == 'qualidade' %}
-                <a href="{% url 'gerar_relatorio' ficha.id %}" class="btn btn-success btn-small">📄 PDF</a>
+                <a href="{% url 'gerar_relatorio' ficha.id %}" class="btn btn-pdf-discreto btn-small">PDF</a>
                 
                 <form method="post" action="{% url 'excluir_ficha' ficha.id %}" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja mover esta ficha para a lixeira?');">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-small">🗑️</button>
+                    <button type="submit" class="btn btn-delete-minimal btn-small">🗑️</button>
                 </form>
                 {% endif %}
             </div>
@@ -310,20 +550,19 @@
     {% if fichas.has_other_pages %}
     <div class="pagination-container">
         {% if fichas.has_previous %}
-            <a href="?page={{ fichas.previous_page_number }}{% if request.GET.data %}&data={{ request.GET.data }}{% endif %}" class="page-btn">Anterior</a>
+            <a href="?page={{ fichas.previous_page_number }}{% if request.GET.p_data %}&p_data={{ request.GET.p_data }}{% endif %}{% if request.GET.p_nome %}&p_nome={{ request.GET.p_nome }}{% endif %}{% if request.GET.p_tipo %}&p_tipo={{ request.GET.p_tipo }}{% endif %}" class="page-btn">Anterior</a>
         {% endif %}
 
         {% for num in fichas.paginator.page_range %}
             {% if num == fichas.number %}
                 <span class="page-btn active">{{ num }}</span>
             {% elif num > fichas.number|add:'-3' and num < fichas.number|add:'3' %}
-                <a href="?page={{ num }}{% if request.GET.data %}&data={{ request.GET.data }}{% endif %}" class="page-btn">{{ num }}</a>
+                <a href="?page={{ num }}{% if request.GET.p_data %}&p_data={{ request.GET.p_data }}{% endif %}{% if request.GET.p_nome %}&p_nome={{ request.GET.p_nome }}{% endif %}{% if request.GET.p_tipo %}&p_tipo={{ request.GET.p_tipo }}{% endif %}" class="page-btn">{{ num }}</a>
             {% endif %}
         {% endfor %}
 
         {% if fichas.has_next %}
-            <a href="?page={{ fichas.next_page_number }}{% if request.GET.data %}&data={{ request.GET.data }}{% endif %}" class="page-btn">Próxima</a>
-        {% endif %}
+            <a href="?page={{ fichas.next_page_number }}{% if request.GET.p_data %}&p_data={{ request.GET.p_data }}{% endif %}{% if request.GET.p_nome %}&p_nome={{ request.GET.p_nome }}{% endif %}{% if request.GET.p_tipo %}&p_tipo={{ request.GET.p_tipo }}{% endif %}" class="page-btn">Próxima</a>        {% endif %}
     </div>
     {% endif %}
     {% endif %}
@@ -419,7 +658,7 @@
 <div class="empty-state">
     <div class="empty-icon">📋</div>
     <h3 style="font-size: 24px; color: #374151; margin-bottom: 10px;">
-        Nenhuma ficha encontrada na data selecionada.
+        Nenhuma ficha encontrada
     </h3>
     <p style="font-size: 16px; color: #6b7280;">
         {% if perfil.tipo == 'operador' %}

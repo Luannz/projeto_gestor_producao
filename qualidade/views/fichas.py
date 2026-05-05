@@ -8,17 +8,20 @@ from django.contrib import messages
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
 from django.core.paginator import Paginator
-from datetime import date
-from django.db.models import Sum, F, Q
+from datetime import date, timedelta
+from django.db.models import Sum
 
-from ..models import Ficha, ParteCalcado, NomeOperador, FichaInventario, ItemInventario
+from ..models import Ficha, ParteCalcado, NomeOperador, FichaInventario , ItemInventario
 
 
 @login_required
 def home(request):
     perfil = request.user.perfil
     hoje = timezone.now().date()
-    data_filtro = request.GET.get('data')
+
+    data_filtro = request.GET.get('p_data')
+    nome_filtro = request.GET.get('p_nome') #novos filtros de nome e tipo
+    tipo_filtro = request.GET.get('p_tipo')
 
     # Grupo do usuário
     is_qualidade = request.user.groups.filter(name='Qualidade').exists()
@@ -29,6 +32,12 @@ def home(request):
     fichas_queryset = Ficha.objects.filter(excluido=False).select_related(
         'operador'
     ).prefetch_related('registros').order_by('-criada_em')
+    # Aplicar filtros de nome e tipo (se fornecidos)
+    if nome_filtro:
+        fichas_queryset = fichas_queryset.filter(nome_ficha__icontains=nome_filtro)
+    
+    if tipo_filtro:
+        fichas_queryset = fichas_queryset.filter(tipo=tipo_filtro)
 
     # ----- 2. APLICAR REGRAS DE VISIBILIDADE E DATA -----
     if is_qualidade:
@@ -105,6 +114,8 @@ def home(request):
         "is_qualidade": is_qualidade,
         "data_atual": data_filtro if data_filtro else (None if is_qualidade else hoje),
         "data_hoje": hoje,
+        "nome_filtro": nome_filtro or '',
+        "tipo_filtro": tipo_filtro or '',
     }
 
     return render(request, "qualidade/home.html", context)
@@ -112,11 +123,36 @@ def home(request):
 
 @login_required
 def criar_ficha(request):
-
-    # Apenas operadores podem criar ficha
-    if request.user.perfil.tipo != 'operador':
-        messages.error(request, 'Apenas operadores podem criar fichas')
+    hoje = timezone.now().date()
+    # 1. VALIDAÇÃO DE PERMISSÃO
+    # Agora permite 'operador' E 'qualidade'
+    if request.user.perfil.tipo not in ['operador', 'qualidade']:
+        messages.error(request, 'Acesso negado para o seu perfil.')
         return redirect('home')
+
+    # --- LÓGICA EXCLUSIVA PARA QUALIDADE (Ficha de Perdas) ---
+    if request.user.perfil.tipo == 'qualidade':
+        # Data sempre será ontem
+        data_ontem = hoje - timedelta(days=1)
+        nome_perdas = "Perdas"
+
+        # Tenta recuperar uma ficha de perdas já existente para ontem ou cria uma nova
+        # Isso evita duplicidade se ele clicar no botão duas vezes
+        ficha, created = Ficha.objects.get_or_create(
+            operador=request.user,
+            tipo='perdas',
+            data=data_ontem,
+            nome_ficha=nome_perdas,
+            excluido=False # Garante que não pegue uma excluída
+        )
+        
+        if created:
+            messages.success(request, f'Ficha de Perdas (Referente a {data_ontem.strftime("%d/%m/%Y")}) iniciada!')
+        else:
+            messages.info(request, 'Continuando preenchimento da ficha de perdas de ontem.')
+            
+        return redirect('editar_ficha', ficha_id=ficha.id)
+
 
     # --- SE FOR INJETORA ---
     if request.user.groups.filter(name='Injetora').exists():
@@ -139,23 +175,25 @@ def criar_ficha(request):
             messages.error(request, "Preencha todos os campos.")
 
         return render(request, 'qualidade/criar_ficha_inventario.html', {
-            'data_hoje': date.today(),
+            'data_hoje': hoje,
         })
 
     # --- OUTROS SETORES ---
     nomes_operador = NomeOperador.objects.filter(
         ativo=True, excluido=False
-    ).order_by('nome')
+    ).order_by('ordem', 'nome')
 
     if request.method == 'POST':
         data = request.POST.get('data')
         nome_ficha = request.POST.get('nome_ficha')
+        tipo_ficha = request.POST.get('tipo_ficha')  # novo campo para tipo de ficha
         
         if data and nome_ficha:
             ficha = Ficha.objects.create(
                 operador=request.user,
                 data=data,
                 nome_ficha=nome_ficha,
+                tipo=tipo_ficha,  # Salva o tipo de ficha selecionado
             )
             messages.success(request, 'Ficha criada com sucesso!')
             return redirect('editar_ficha', ficha_id=ficha.id)
@@ -163,7 +201,7 @@ def criar_ficha(request):
             messages.error(request, 'Preencha todos os campos.')
 
     return render(request, 'qualidade/criar_ficha.html', {
-        'data_hoje': date.today(),
+        'data_hoje': hoje,
         'nomes_operador': nomes_operador,
     })
 
@@ -174,11 +212,17 @@ def criar_ficha(request):
 def editar_ficha(request, ficha_id):
     """Editar ficha existente"""
     ficha = get_object_or_404(Ficha, id=ficha_id)
-    
+    pode_editar = False
     # Verificar permissão
     if request.user.perfil.tipo == 'operador' and ficha.operador != request.user:
         messages.error(request, 'Você não tem permissão para editar esta ficha')
         return redirect('home')
+    
+    elif request.user.perfil.tipo == 'qualidade':
+    # Se a ficha não for dele E o setor da ficha não for 'qualidade'
+        if ficha.operador != request.user and ficha.setor != 'Qualidade':
+            messages.error(request, 'Você só pode editar fichas do setor Qualidade.')
+            return redirect('home')
     
     # Buscar todas as partes ativas E NÃO EXCLUÍDAS
     partes_disponiveis = ParteCalcado.objects.filter(ativo=True, excluido=False).order_by('nome' ,'ordem')
@@ -198,13 +242,19 @@ def editar_ficha(request, ficha_id):
             'parte_nome': registro.parte.nome
         }
     
+
+    if request.user.perfil.tipo == 'operador' and ficha.operador == request.user:
+        pode_editar = True
+    elif request.user.perfil.tipo == 'qualidade' and (ficha.operador == request.user or ficha.setor == 'Qualidade'):
+        pode_editar = True
+
     context = {
         'ficha': ficha,
         'partes_disponiveis': partes_disponiveis,
         'registros': registros,
         'registros_existentes': registros_existentes,
         'partes_adicionadas_ids': partes_adicionadas_ids,
-        'pode_editar': request.user.perfil.tipo == 'operador' and ficha.operador == request.user,
+        'pode_editar': pode_editar,
     }
     return render(request, 'qualidade/editar_ficha.html', context)
 
