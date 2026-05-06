@@ -132,24 +132,33 @@ def criar_ficha(request):
 
     # --- LÓGICA EXCLUSIVA PARA QUALIDADE (Ficha de Perdas) ---
     if request.user.perfil.tipo == 'qualidade':
-        # Data sempre será ontem
-        data_ontem = hoje - timedelta(days=1)
+        # hoje.weekday() retorna: 0 para Segunda, 1 para Terça... 6 para Domingo
+        dia_da_semana = hoje.weekday()
+
+        if dia_da_semana == 0:  # Se hoje for SEGUNDA
+            dias_para_subtrair = 3  # Pula o domingo e pega a sexta-feira
+            # como a fábrica não abre no domingo e sábado, a ficha de perdas de segunda-feira deve se referir à sexta-feira anterior
+        else:
+            dias_para_subtrair = 1  # Nos outros dias, mantém a lógica de "ontem"
+
+        data_operacional = hoje - timedelta(days=dias_para_subtrair)
         nome_perdas = "Perdas"
 
-        # Tenta recuperar uma ficha de perdas já existente para ontem ou cria uma nova
-        # Isso evita duplicidade se ele clicar no botão duas vezes
+        # Tenta recuperar ou criar a ficha para a data calculada
         ficha, created = Ficha.objects.get_or_create(
             operador=request.user,
             tipo='perdas',
-            data=data_ontem,
+            data=data_operacional,
             nome_ficha=nome_perdas,
-            excluido=False # Garante que não pegue uma excluída
+            excluido=False
         )
         
+        data_formatada = data_operacional.strftime("%d/%m/%Y")
+        
         if created:
-            messages.success(request, f'Ficha de Perdas (Referente a {data_ontem.strftime("%d/%m/%Y")}) iniciada!')
+            messages.success(request, f'Ficha de Perdas (Referente a {data_formatada}) iniciada!')
         else:
-            messages.info(request, 'Continuando preenchimento da ficha de perdas de ontem.')
+            messages.info(request, f'Continuando preenchimento da ficha de perdas de {data_formatada}.')
             
         return redirect('editar_ficha', ficha_id=ficha.id)
 
