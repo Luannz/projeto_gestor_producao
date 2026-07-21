@@ -1,17 +1,4 @@
 services:
-  db:
-    image: postgres:15
-    container_name: gestorproducao_db
-    restart: always
-    ports:
-    - "5436:5432"
-    volumes:
-      - gestorproducao_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-
   web:
     build: .
     container_name: gestorproducao_web
@@ -32,8 +19,6 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEBUG=${DEBUG}
-    depends_on:
-      - db
 
 volumes:
   gestorproducao_data:
